@@ -71,7 +71,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'llm_project.wsgi.application'
 
-HAS_WEAVAITEDB = True
+HAS_WEAVAITEDB = False
 
 
 # Database
