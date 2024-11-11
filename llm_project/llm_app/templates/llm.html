@@ -1,0 +1,9 @@
+<form method="POST"></form>
+    {% csrf_token %}
+    <label for="prompt">Enter your prompt:</label>
+    <textarea id="prompt" name="prompt">{{ prompt }}</textarea><br>
+    <input type="submit" value="Submit">
+</form>
+<hr>
+<h2>Response:</h2>
+<p>{{ result }}</p>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Interface</title>
+    {% load static %}  <!-- Load the static template tag -->
+    <script src="{% static 'llm_app/marked.min.js' %}"></script>
+    <script src="{% static 'llm_app/chat.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'llm_app/chat.css' %}">
+</head>
+<body>
+    
+    <div class="chat-container">
+        <!-- Chat window section on the right -->
+        <div class="chat-history" id="chatHistory">
+            <h3>Chat History</h3>
+            <button type="button" id="newChatButton" class="btn">New Chat</button>
+            <!-- List of previous chats will be inserted here -->
+            <ul id="historyList">
+                <!-- Dynamic chat history items -->
+                
+            </ul>
+        </div>
+        <div class="chat-box-wrapper">
+            <div class="chat-header">
+                <h2>Chatbot</h2>
+            </div>
+            <div>
+                <label for="ttsSwitch">Enable TTS</label>
+                <input type="checkbox" id="ttsSwitch">
+            </div>
+            <!-- Chat history section on the left -->
+            
+            <div class="chat-box" id="chatBox">
+                <!-- Chat messages will be inserted here dynamically -->
+            </div>
+            <form id="chatForm" class="chat-input-container" method="POST">
+                {% csrf_token %}
+                <textarea id="userInput" placeholder="Type your message..." name="prompt"></textarea>
+                <button id="micButton">
+                    🎤
+                </button>
+                <div class="action-buttons">
+                    <button type="button" id="retryButton" class="btn">Retry</button>
+                    <button type="button" id="undoButton" class="btn">Undo</button>
+                    <button type="button" id="clearButton" class="btn">Clear</button>
+                    <button type="submit" class="send-button">
+                        <img src="{% static 'llm_app/send-icon.png' %}" alt="Send">
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="CCID" data-value=""></div>
+    
+</body>
+</html>

@@ -1,0 +1,130 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+.chat-container {
+    display: flex;
+    width: 100%; /* Adjust width as needed */
+    margin: 50px auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.chat-history {
+    flex: 1; /* Take up remaining space */
+    background-color: #f1f1f1; /* Example background color */
+    padding: 10px;
+}
+.chat-box-wrapper {
+    width: 70%; /* Set width to 30% or any size you want */
+    background-color: #ddd; /* Example background color */
+    padding: 10px;
+}
+.chat-header {
+    background-color: #f4f4f4;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.chat-box {
+    height: 300px;
+    padding: 10px;
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+    overflow-y: scroll;
+    box-sizing: border-box;
+}
+
+.chat-input-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+textarea {
+    width: 70%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    resize: none;
+    box-sizing: border-box;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    background-color: #007bff;
+    color: rgb(220, 231, 180);
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.send-button img {
+    width: 20px;
+    height: 20px;
+}
+
+.send-button {
+    background-color: #c6f2ff;
+    border: none;
+    cursor: pointer;
+}
+
+#retryButton, #undoButton, #clearButton {
+    background-color: #c6f2ff;
+    color: #555;
+}
+
+/* Style for the history items */
+.history-item {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    background-color: #f0f0f0;
+    color: #333;
+    cursor: pointer;  /* Makes the pointer appear as a hand */
+    transition: background-color 0.3s, color 0.3s; /* Smooth transition */
+}
+
+/* Hover effect to highlight clickable nature */
+.history-item:hover {
+    background-color: #e0e0e0;
+    color: #0056b3;
+    font-weight: bold;
+}
+
+/* Active or focused state (when clicked) */
+.history-item:active {
+    background-color: #d0d0d0;
+    color: #003d99;
+}
+
+.chat-message code {
+    background-color: #f4f4f4;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+    color: #d6336c;
+}
+
+.chat-message pre {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 4px;
+    overflow: auto;
+    font-family: monospace;
+    color: #333;
+}
+
+.chat-message em {
+    font-style: italic;
+    color: #2a9df4;
+}
