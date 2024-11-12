@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from .service import (
-    model_predict,
     model_predict_retry2,
     model_predict2,
     message_undo2,
@@ -220,19 +219,6 @@ def login_view(request):
             return render(request, "login.html", {"error": "Invalid credentials"})
 
     return render(request, "login.html")
-
-
-@login_required
-def chatbot_view(request):
-    if request.method == "POST":
-        user_input = request.POST.get("prompt", "").strip()
-        try:
-            model_response = model_predict(user_input)
-        except ValueError as e:
-            return JsonResponse({"error": str(e)}, status=500)
-        return JsonResponse({"response": model_response})
-
-    return render(request, "chat.html")
 
 @api_view(['POST'])
 def upload_pdf(request):
