@@ -197,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         removeLastMessage();
         removeLastMessage();
-        document.getElementById('CCID').setAttribute('data-value', '');
     });
     // Retry button functionality
     retryButton.addEventListener('click', async () => {
