@@ -11,7 +11,6 @@ urlpatterns = [
     path('chat/gethistory', views.get_all_chat_history, name='chat_gethistory'),
     path('chat/loadchat', views.load_chat_history, name='chat_loadchat'),
     path('login/', views.login_view, name='login'),
-    path('chatbot/', views.chatbot_view, name='chatbot'),
     path('chat/upload_pdf', views.upload_pdf, name='upload_pdf'),
 
 ]
