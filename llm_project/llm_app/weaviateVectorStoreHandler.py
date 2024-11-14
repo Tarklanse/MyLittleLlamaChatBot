@@ -9,14 +9,21 @@ from langchain_weaviate.vectorstores import WeaviateVectorStore
 import re,os
 from weaviate.classes.query import Filter
 from .vectorMapper import add_mapping,get_mapping
+from langchain.chains.qa_with_sources.retrieval import RetrievalQAWithSourcesChain
+
 
 weaviate_clien=None
+embeddings=None
 
 def weaviate_store_init():
     global weaviate_clien
     weaviate_clien = weaviate.connect_to_local(
     )
     return weaviate_clien
+def embedding_init():
+    global embeddings
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
+    return embeddings
 
 def get_all_pdfs(directory):
     pdf_files = []
@@ -82,11 +89,12 @@ def filter_lines(document, keyword):
 
 
 def newVector(chat_id,pdf_file_Path):
-    #to do
     global weaviate_clien
+    global embeddings
     if weaviate_clien is None or weaviate_clien.is_ready() is False:
         weaviate_store_init()
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
+    if embeddings is None:
+        embedding_init()
     filepath=get_all_pdfs(pdf_file_Path)
     documents=extract_pdf_content(filepath)
     print(f"檔案被切分為{len(documents)}塊")
@@ -98,14 +106,18 @@ def newVector(chat_id,pdf_file_Path):
             except:
                 continue
     db = WeaviateVectorStore.from_documents(fd, embeddings, client=weaviate_clien)
+    
     add_mapping(chat_id,db._index_name)
+    db = None
 
 def queryVector(chat_id,message):
     dbindex=get_mapping(chat_id)
     global weaviate_clien
+    global embeddings
     if weaviate_clien is None or weaviate_clien.is_ready() is False:
         weaviate_store_init()
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
+    if embeddings is None:
+        embedding_init()
     db=WeaviateVectorStore(client=weaviate_clien,index_name=dbindex,text_key="text",embedding=embeddings)
     docs=db.similarity_search(message)
     theContext = ""
@@ -117,6 +129,20 @@ def queryVector(chat_id,message):
         f"\n以下是你參考的文件，將其統整併歸納後用於回答問題。這些參考資料使用者看不見，如果你要引用，需要將參考資料帶給使用者看。```\n{theContext} \n ```"
     )
     return ragPromote
+
+def queryVector2(chat_id,messages,llm):
+    dbindex=get_mapping(chat_id)
+    global weaviate_clien
+    global embeddings
+    if weaviate_clien is None or weaviate_clien.is_ready() is False:
+        weaviate_store_init()
+    if embeddings is None:
+        embedding_init()
+    db=WeaviateVectorStore(client=weaviate_clien,index_name=dbindex,text_key="text",embedding=embeddings)
+    chain = RetrievalQAWithSourcesChain.from_chain_type(
+        llm, chain_type="stuff", retriever=db.as_retriever())
+    chain(messages)
+    
     
 def testloadfiles():
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
@@ -135,7 +161,3 @@ def testloadfiles():
     print(f"內容清理完成，剩下{len(fd)}塊")
     docs = db.similarity_search("itpet的主要目的是甚麼?")
     print(docs)
-
-
-
-#weaviatetest.collections.delete_all()
