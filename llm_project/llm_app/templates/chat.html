@@ -36,6 +36,7 @@
                 <!-- Chat messages will be inserted here dynamically -->
             </div>
             <form id="chatForm" class="chat-input-container" method="POST">
+                
                 {% csrf_token %}
                 <textarea id="userInput" placeholder="Type your message..." name="prompt"></textarea>
                 <button id="micButton">
@@ -50,6 +51,7 @@
                     </button>
                 </div>
             </form>
+            <div id="blocker" class="blocker" style="display: none;"></div>
             <div class="upload-container">
                 <h3>Upload PDF(s)</h3>
                 <form id="pdfUploadForm" enctype="multipart/form-data">
@@ -61,6 +63,8 @@
         </div>
     </div>
     <div id="CCID" data-value=""></div>
+    <!-- Blocker overlay -->
     
+
 </body>
 </html>
