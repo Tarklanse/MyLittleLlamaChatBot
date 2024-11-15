@@ -1,39 +1,50 @@
 body {
     font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden; /* Prevents the body from scrolling */
 }
-
 .chat-container {
     display: flex;
-    width: 100%; /* Adjust width as needed */
-    margin: 50px auto;
+    height: 100vh; /* Ensures the container fills the full viewport height */
+    margin: 0 auto;
     border: 1px solid #ddd;
     border-radius: 8px;
     overflow: hidden;
 }
+
 .chat-history {
-    flex: 1; /* Take up remaining space */
-    background-color: #f1f1f1; /* Example background color */
+    width: 20%;
+    max-height: 100vh;
+    background-color: #f1f1f1;
     padding: 10px;
+    overflow-y: auto; /* Makes the left side scrollable */
+    box-sizing: border-box;
 }
+
 .chat-box-wrapper {
-    width: 70%; /* Set width to 30% or any size you want */
-    background-color: #ddd; /* Example background color */
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    background-color: #ddd;
     padding: 10px;
+    box-sizing: border-box;
+}
+
+.chat-box {
+    flex-grow: 1;
+    height: 300px;
+    padding: 10px;
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+    overflow-y: scroll;
 }
 .chat-header {
     background-color: #f4f4f4;
     padding: 10px;
     text-align: center;
     font-weight: bold;
-}
-
-.chat-box {
-    height: 300px;
-    padding: 10px;
-    background-color: #fff;
-    border-bottom: 1px solid #ddd;
-    overflow-y: scroll;
-    box-sizing: border-box;
 }
 
 .chat-input-container {
@@ -127,4 +138,39 @@ textarea {
 .chat-message em {
     font-style: italic;
     color: #2a9df4;
+}
+.upload-container {
+    padding: 10px;
+    border-top: 1px solid #ddd;
+    margin-top: 20px;
+}
+
+.upload-container h3 {
+    margin: 0 0 10px;
+}
+
+.upload-container input[type="file"] {
+    margin-bottom: 10px;
+}
+
+/* Blocker overlay style */
+.blocker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent white */
+    z-index: 10; /* Ensure it appears above other elements */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: wait; /* Show loading cursor */
+}
+
+/* Optional: Loading text or spinner inside the blocker */
+.blocker::after {
+    content: "Waiting AI's response...";
+    font-size: 1.5em;
+    color: #333;
 }
