@@ -94,13 +94,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Call loadChatHistory when the page loads
     loadChatHistory();
+    // Function to show the blocker
+    function showBlocker() {
+        document.getElementById("blocker").style.display = "flex";
+    }
 
+    // Function to hide the blocker
+    function hideBlocker() {
+        document.getElementById("blocker").style.display = "none";
+    }
 
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const message = userInput.value;
         if (message.trim() === '') return;
-
+        showBlocker()
         addMessageToChat('You', message);
         userInput.value = '';
         let value = document.getElementById('CCID').getAttribute('data-value');
@@ -135,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             addMessageToChat('Bot', 'Error: ' + data.message);
         }
+        hideBlocker()
         checkHistory()
     });
 
@@ -206,6 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (chatMessages.length==0 | value==''){
             return
         }
+        showBlocker()
         // Call the retry API
         const response = await fetch('/chat/retry', {
             method: 'POST',
@@ -232,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             addMessageToChat('Bot', 'Error: Could not retry message.');
         }
-        
+        hideBlocker()
     });
     function addMessageToChat(sender, message) {
         const messageElement = document.createElement('div');
