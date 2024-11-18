@@ -97,6 +97,12 @@ def newVector(chat_id,pdf_file_Path):
         embedding_init()
     filepath=get_all_pdfs(pdf_file_Path)
     documents=extract_pdf_content(filepath)
+    vectorId=get_mapping(chat_id)
+    if vectorId is not None:
+        try:
+            weaviate_clien.collections.delete(vectorId)
+        except:
+            print("delete vector history fail,maybe it is has been clean?")
     print(f"檔案被切分為{len(documents)}塊")
     fd=filter_table_of_contents(documents)
     for thisfd in fd:
