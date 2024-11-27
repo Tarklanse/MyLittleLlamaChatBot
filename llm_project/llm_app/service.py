@@ -6,6 +6,8 @@ from django.conf import settings
 from .memory_handler import set_memory, revert_memory, get_memory, delete_memory
 from .weaviateVectorStoreHandler import queryVector
 from langchain_community.chat_models import ChatLlamaCpp
+from langchain_core.tools import tool
+
 
 memorylib = {}
 model = None
@@ -17,7 +19,7 @@ def model_init():
         model_path=model_path, model_kwargs={"chat_format":"gemma","tensorcores":True}, n_ctx=8192
     )
 
-def model_predict2(input_text, userid, conversessionID):
+def model_predict(input_text, userid, conversessionID):
     global model
     messages = get_memory(userid, conversessionID)
 
@@ -36,14 +38,16 @@ def model_predict2(input_text, userid, conversessionID):
         messages = get_memory(userid, conversessionID)
 
     output = model.invoke(
-        messages
+        messages,
+        max_tokens=settings.GEN_MAX_TOKEN,
+        temperature=settings.GEN_TEMPERATURE,
+        repeat_penalty=settings.GEN_REPEAT_PENALTY
     )
     result = output.content
     set_memory({"role": "assistant", "content":output.content}, userid, conversessionID)
     return result, conversessionID
 
-
-def model_predict_retry2(userid, conversessionID):
+def model_predict_retry(userid, conversessionID):
     global model
     messages = get_memory(userid, conversessionID)
 
@@ -54,14 +58,17 @@ def model_predict_retry2(userid, conversessionID):
         revert_memory(userid, conversessionID)
 
     output = model.invoke(
-        messages
+        messages,
+        max_tokens=settings.GEN_MAX_TOKEN,
+        temperature=settings.GEN_TEMPERATURE,
+        repeat_penalty=settings.GEN_REPEAT_PENALTY
     )
     result = output.content
     set_memory({"role": "assistant", "content":output.content}, userid, conversessionID)
     return result, conversessionID
 
 
-def message_undo2(userid, conversessionID):
+def message_undo(userid, conversessionID):
     global model
     messages = get_memory(userid, conversessionID)
     try:
@@ -98,13 +105,16 @@ def rag_predict(input_text, userid, conversessionID):
         {"role": "user", "content": input_text},
     ]
     output = model.invoke(
-        messages
+        messages,
+        max_tokens=settings.GEN_MAX_TOKEN,
+        temperature=settings.GEN_TEMPERATURE,
+        repeat_penalty=settings.GEN_REPEAT_PENALTY
     )
     result = output.content
     set_memory({"role": "assistant", "content":output.content}, userid, conversessionID)
     return result, conversessionID
 
-def RAG_predict_retry(userid, conversessionID):
+def rag_predict_retry(userid, conversessionID):
     global model
     messages = get_memory(userid, conversessionID)
 
@@ -122,7 +132,10 @@ def RAG_predict_retry(userid, conversessionID):
         {"role": "user", "content": last_input},
     ]
     output = model.invoke(
-        messages
+        messages,
+        max_tokens=settings.GEN_MAX_TOKEN,
+        temperature=settings.GEN_TEMPERATURE,
+        repeat_penalty=settings.GEN_REPEAT_PENALTY
     )
     result = output.content
     set_memory({"role": "assistant", "content":output.content}, userid, conversessionID)
