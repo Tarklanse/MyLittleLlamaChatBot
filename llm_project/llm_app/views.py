@@ -2,11 +2,12 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from .service import (
-    model_predict_retry2,
-    model_predict2,
-    message_undo2,
+    model_predict_retry,
+    model_predict,
+    message_undo,
     rag_predict,
-    RAG_predict_retry
+    rag_predict_retry,
+    model_text_only_predict
 )
 from .memory_handler import list_memory_sessions, delete_memory, get_memory
 from rest_framework.decorators import api_view
@@ -42,7 +43,7 @@ def llm_api(request):
             tempid = request.data.get("CCID")
             vectorId=get_mapping(tempid)
             if vectorId is None or settings.HAS_WEAVAITEDB is False:
-                result, conversessionID = model_predict2(prompt, user_id, tempid)
+                result, conversessionID = model_predict(prompt, user_id, tempid)
             else:
                 result, conversessionID = rag_predict(prompt, user_id, tempid)
             return Response(
@@ -61,7 +62,6 @@ def llm_api(request):
             status=status.HTTP_200_OK,
         )
 
-
 @api_view(["POST"])
 def chat_retry(request):
     try:
@@ -70,9 +70,9 @@ def chat_retry(request):
             tempid = request.data.get("CCID")
             vectorId=get_mapping(tempid)
             if vectorId is None or settings.HAS_WEAVAITEDB is False:
-                result, conversessionID = model_predict_retry2(user_id, tempid)
+                result, conversessionID = model_predict_retry(user_id, tempid)
             else:
-                result, conversessionID = RAG_predict_retry(user_id, tempid)
+                result, conversessionID = rag_predict_retry(user_id, tempid)
             
             return Response({"result": result, "CCID": conversessionID}, status=status.HTTP_200_OK)
         else:
@@ -94,7 +94,7 @@ def chat_undo(request):
         if request.session.get("is_authenticated"):
             user_id = request.session.get("user_id")
             tempid = request.data.get("CCID")
-            result = message_undo2(user_id, tempid)
+            result = message_undo(user_id, tempid)
             return Response({"result": result}, status=status.HTTP_200_OK)
 
         else:
