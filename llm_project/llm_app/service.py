@@ -16,7 +16,9 @@ def model_init():
     global model
     model_path = settings.MODEL_PATH
     model = ChatLlamaCpp(
-        model_path=model_path, model_kwargs={"chat_format":"gemma","tensorcores":True}, n_ctx=8192
+        model_path=model_path,
+        model_kwargs={"chat_format":settings.MODEL_CHAT_FORMAT,"tensorcores":True},
+        n_ctx=8192
     )
 
 def model_predict(input_text, userid, conversessionID):
