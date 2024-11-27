@@ -6,7 +6,7 @@
 ![image](https://github.com/Tarklanse/MyLittleLlamaChatBot/blob/main/chat_without_PDF.png?raw=true)
 若是在本地端有安裝weaviate的Docker，會出現對應的PDF上傳功能
 ![image](https://github.com/Tarklanse/MyLittleLlamaChatBot/blob/main/chat_with_pdf_record.png?raw=true)
-圖中範例為拿著Omnigen的論文詢問的結果,原始使用的模型(Gemma2-2b)完全不知道Omnigen是甚麼
+*圖中範例為拿著Omnigen的論文詢問的結果,原始使用的模型(Gemma2-2b)完全不知道Omnigen是甚麼，但搭配PDF後可以觀察到能正確回答Omnigen是甚麼
 
 使用方法:  
 需先行安裝requirements.txt中的函式庫
