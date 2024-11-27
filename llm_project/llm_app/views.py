@@ -7,7 +7,6 @@ from .service import (
     message_undo,
     rag_predict,
     rag_predict_retry,
-    model_text_only_predict
 )
 from .memory_handler import list_memory_sessions, delete_memory, get_memory
 from rest_framework.decorators import api_view
