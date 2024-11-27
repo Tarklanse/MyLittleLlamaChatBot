@@ -134,6 +134,7 @@ SYSTEM_PROMPTS = {
 
 USER_DATA_FILE = 'llm_project/llm_app/users.json'
 MODEL_PATH = 'llm_project/llm_app/models/model.gguf'
+MODEL_CHAT_FORMAT = 'gemma'
 
 LOGIN_URL = '/login/'
 
