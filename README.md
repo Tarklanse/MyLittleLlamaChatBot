@@ -6,19 +6,19 @@
 ![image](https://github.com/Tarklanse/MyLittleLlamaChatBot/blob/main/chat_without_PDF.png?raw=true)
 若是在本地端有安裝weaviate的Docker，會出現對應的PDF上傳功能
 ![image](https://github.com/Tarklanse/MyLittleLlamaChatBot/blob/main/chat_with_pdf_record.png?raw=true)
-*圖中範例為拿著Omnigen的論文詢問的結果,原始使用的模型(Gemma2-2b)完全不知道Omnigen是甚麼，但搭配PDF後可以觀察到能正確回答Omnigen是甚麼
+*圖中範例為拿著Omnigen的論文詢問的結果,原始使用的模型(Gemma2-2b)完全不知道Omnigen是甚麼，但搭配PDF後可以觀察到能正確回答Omnigen是甚麼  
 
 使用方法:  
-需先行安裝requirements.txt中的函式庫
-你需要先在llm_project/llm_app/models/這個路徑中放入要執行的GGUF模型，並更新在settings.py中MODEL_PATH指定的模型檔名
-若在本地有安裝weaviate，在settings.py中將HAS_WEAVAITEDB改為True後畫面會額外顯示接受PDF的上傳
+需先行安裝requirements.txt中的函式庫  
+你需要先在llm_project/llm_app/models/這個路徑中放入要執行的GGUF模型，並更新在settings.py中MODEL_PATH指定的模型檔名  
+若在本地有安裝weaviate，在settings.py中將HAS_WEAVAITEDB改為True後畫面會額外顯示接受PDF的上傳  
 
 設定:  
 帳號密碼在llm_project/llm_app/user.json中  
-在llm_project/llm_project/settings.py中
-SYSTEM_PROMPTS:系統文字，其中welcome_message是所有對話的系統提示詞
-MODEL_PATH:是指定的模型路徑
-MODEL_CHAT_FORMAT 對應llama.cpp中的chat format,需注意gemma系列的模型不接受system prompts
-GEN_TEMPERATURE: 文字生成溫度
-GEN_REPEAT_PENALTY: 文字重複懲罰
-GEN_MAX_TOKEN:最大回應的Token數量
+在llm_project/llm_project/settings.py中  
+SYSTEM_PROMPTS:系統文字，其中welcome_message是所有對話的系統提示詞  
+MODEL_PATH:是指定的模型路徑  
+MODEL_CHAT_FORMAT 對應llama.cpp中的chat format,需注意gemma系列的模型不接受system prompts  
+GEN_TEMPERATURE: 文字生成溫度  
+GEN_REPEAT_PENALTY: 文字重複懲罰  
+GEN_MAX_TOKEN:最大回應的Token數量  
