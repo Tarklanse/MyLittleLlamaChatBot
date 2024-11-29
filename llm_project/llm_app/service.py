@@ -3,10 +3,14 @@ import re
 import llama_cpp
 import requests
 from django.conf import settings
-from .memory_handler import set_memory, revert_memory, get_memory, delete_memory
+from .memory_handler import set_memory, revert_memory, get_memory, memory_to_turple
 from .weaviateVectorStoreHandler import queryVector
 from langchain_community.chat_models import ChatLlamaCpp
 from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
+from .llmTools import findBigger,sortList
+from langchain_core.messages.base import BaseMessageChunk
+
 
 
 memorylib = {}
@@ -20,6 +24,8 @@ def model_init():
         model_kwargs={"chat_format":settings.MODEL_CHAT_FORMAT,"tensorcores":True},
         n_ctx=8192
     )
+    model = create_react_agent(model, tools=[findBigger,sortList])
+
 
 def model_predict(input_text, userid, conversessionID):
     global model
@@ -38,15 +44,13 @@ def model_predict(input_text, userid, conversessionID):
     else:
         set_memory({"role": "user", "content": input_text}, userid, conversessionID)
         messages = get_memory(userid, conversessionID)
-
+    
     output = model.invoke(
-        messages,
-        max_tokens=settings.GEN_MAX_TOKEN,
-        temperature=settings.GEN_TEMPERATURE,
-        repeat_penalty=settings.GEN_REPEAT_PENALTY
+        {"messages":memory_to_turple(messages)},
     )
-    result = output.content
-    set_memory({"role": "assistant", "content":output.content}, userid, conversessionID)
+    result = output["messages"][-1].content
+    print(result)
+    set_memory({"role": "assistant", "content":result}, userid, conversessionID)
     return result, conversessionID
 
 def model_predict_retry(userid, conversessionID):
@@ -60,13 +64,11 @@ def model_predict_retry(userid, conversessionID):
         revert_memory(userid, conversessionID)
 
     output = model.invoke(
-        messages,
-        max_tokens=settings.GEN_MAX_TOKEN,
-        temperature=settings.GEN_TEMPERATURE,
-        repeat_penalty=settings.GEN_REPEAT_PENALTY
+        {"messages":memory_to_turple(messages)},
     )
-    result = output.content
-    set_memory({"role": "assistant", "content":output.content}, userid, conversessionID)
+    result = output["messages"][-1].content
+    print(result)
+    set_memory({"role": "assistant", "content":result}, userid, conversessionID)
     return result, conversessionID
 
 
@@ -107,13 +109,11 @@ def rag_predict(input_text, userid, conversessionID):
         {"role": "user", "content": input_text},
     ]
     output = model.invoke(
-        messages,
-        max_tokens=settings.GEN_MAX_TOKEN,
-        temperature=settings.GEN_TEMPERATURE,
-        repeat_penalty=settings.GEN_REPEAT_PENALTY
+        {"messages":memory_to_turple(messages)},
     )
-    result = output.content
-    set_memory({"role": "assistant", "content":output.content}, userid, conversessionID)
+    result = output["messages"][-1].content
+    print(result)
+    set_memory({"role": "assistant", "content":result}, userid, conversessionID)
     return result, conversessionID
 
 def rag_predict_retry(userid, conversessionID):
@@ -134,11 +134,9 @@ def rag_predict_retry(userid, conversessionID):
         {"role": "user", "content": last_input},
     ]
     output = model.invoke(
-        messages,
-        max_tokens=settings.GEN_MAX_TOKEN,
-        temperature=settings.GEN_TEMPERATURE,
-        repeat_penalty=settings.GEN_REPEAT_PENALTY
+        {"messages":memory_to_turple(messages)},
     )
-    result = output.content
-    set_memory({"role": "assistant", "content":output.content}, userid, conversessionID)
+    result = output["messages"][-1].content
+    print(result)
+    set_memory({"role": "assistant", "content":result}, userid, conversessionID)
     return result, conversessionID
