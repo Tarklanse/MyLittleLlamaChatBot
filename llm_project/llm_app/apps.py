@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 from django.conf import settings
-from .service import model_init
+from .service import model_init_gguf,model_init_opanai,model_init_transformer
 import queue
 
 
@@ -9,5 +9,10 @@ class LlmAppConfig(AppConfig):
     name = 'llm_app'
 
     def ready(self):
-        model_init()
-        
+        print('ready')
+        if settings.MODEL_TYPE == 'transformer':
+            model_init_transformer()
+        elif settings.MODEL_TYPE == 'openai':
+            model_init_opanai()
+        else:
+            model_init_gguf()
