@@ -9,8 +9,9 @@ urlpatterns = [
     path('chat/undo', views.chat_undo, name='chat_undo'),
     path('chat/reset', views.reset_chat_history, name='chat_reset'),
     path('chat/gethistory', views.get_all_chat_history, name='chat_gethistory'),
+    path('chat/editPersonal', views.edit_Personal, name='chat_editPersonal'),
     path('chat/loadchat', views.load_chat_history, name='chat_loadchat'),
     path('login/', views.login_view, name='login'),
     path('chat/upload_pdf', views.upload_pdf, name='upload_pdf'),
-
+    path('api/download_AI_Gen_file/<str:filename>/', views.download_AI_Gen_file, name='download_file'),
 ]
