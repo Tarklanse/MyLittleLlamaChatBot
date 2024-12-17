@@ -138,6 +138,7 @@ MODEL_PATH = 'llm_project/llm_app/models/model.gguf'
 MODEL_CHAT_FORMAT = 'gemma'
 MODEL_ID='meta-llama/Llama-3.1-8B-Instruct'
 
+AI_TEXT_PATH='ai_txt/'
 
 LOGIN_URL = '/login/'
 
