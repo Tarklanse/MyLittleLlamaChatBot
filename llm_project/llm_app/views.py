@@ -8,7 +8,7 @@ from .service import (
     rag_predict,
     rag_predict_retry,
 )
-from .memory_handler import list_memory_sessions, delete_memory, get_memory
+from .memory_handler import list_memory_sessions, delete_memory, get_memory,edit_persenal
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import JsonResponse
@@ -26,7 +26,7 @@ import os
 from datetime import datetime
 from .weaviateVectorStoreHandler import newVector
 from .vectorMapper import get_mapping
-
+from django.http import FileResponse, Http404
 
 @api_view(["POST"])
 def llm_api(request):
@@ -74,6 +74,29 @@ def chat_retry(request):
                 result, conversessionID = rag_predict_retry(user_id, tempid)
             
             return Response({"result": result, "CCID": conversessionID}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"redirect_url": "/login/"}, status=status.HTTP_403_FORBIDDEN
+            )  # Return a redirect URL and 403 status
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+        return Response(
+            {"result": settings.SYSTEM_PROMPTS["error_message"]},
+            status=status.HTTP_200_OK,
+        )
+
+@api_view(["POST"])
+def edit_Personal(request):
+    try:
+        if request.session.get("is_authenticated"):
+            user_id = request.session.get("user_id")
+            tempid = request.data.get("CCID")
+            newPersonal = request.data.get("Personal")
+            if newPersonal is None or newPersonal=='':
+                newPersonal=settings.SYSTEM_PROMPTS['Default_Personal']
+            tempid=edit_persenal(user_id,tempid,newPersonal)
+            return Response({"CCID": tempid}, status=status.HTTP_200_OK)
         else:
             return Response(
                 {"redirect_url": "/login/"}, status=status.HTTP_403_FORBIDDEN
@@ -247,4 +270,23 @@ def upload_pdf(request):
         traceback.print_exc()
         print(f"Error uploading PDFs: {e}")
         return JsonResponse({"error": "Failed to upload PDF(s)"}, status=500)
+@api_view(['GET'])
+def download_AI_Gen_file(request,filename):
+    """
+    Serve a file for download.
 
+    Parameters:
+    - request: The HTTP request object.
+    - filename: The name of the file to be downloaded.
+
+    Returns:
+    - FileResponse: A response that streams the file to the user.
+    """
+
+    file_path = os.path.join(settings.AI_TEXT_PATH, filename)
+    if not os.path.exists(file_path):
+        raise Http404("File does not exist")
+
+    response = FileResponse(open(file_path, 'rb'), as_attachment=True)
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
