@@ -8,6 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const historyList = document.getElementById('historyList');
     const ttsSwitch = document.getElementById('ttsSwitch');
     const newChatButton = document.getElementById('newChatButton');
+    
+    const editPersonalButton = document.getElementById('editPersonalButton');
+    const personalEditModal = document.getElementById('personalEditModal');
+    const closeModalButton = document.getElementById('closeModalButton');
+    const savePersonalButton = document.getElementById('savePersonalButton');
+    const personalInput = document.getElementById('personalInput');
+    const personalDiv = document.getElementById('Personal');
     // Check for browser support for the Web Speech API
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = SpeechRecognition ? new SpeechRecognition() : null;
@@ -209,11 +216,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // Retry button functionality
     retryButton.addEventListener('click', async () => {
-        removeLastMessage();
+        
         let value = document.getElementById('CCID').getAttribute('data-value');
         const chatMessages = chatBox.getElementsByClassName('chat-message');
-        if (chatMessages.length==0 | value==''){
-            return
+        // Check if there are any messages and if the last one is from the Bot
+        if (chatMessages.length > 0) {
+            const lastMessage = chatMessages[chatMessages.length - 1];
+            if (lastMessage.innerHTML.startsWith('<strong>Bot:</strong>')) {
+                removeLastMessage(); // Remove only if the last message is from the Bot
+            }
+        }
+
+        // Ensure there's still a valid value and at least one message left
+        if (chatMessages.length == 0 || value == '') {
+            return;
+        }
+
+        // Repeat the check and remove the second-to-last message if it's also from the Bot
+        if (chatMessages.length > 0) {
+            const lastMessage = chatMessages[chatMessages.length - 1];
+            if (lastMessage.innerHTML.startsWith('<strong>Bot:</strong>')) {
+                removeLastMessage();
+            }
         }
         showBlocker()
         // Call the retry API
@@ -247,14 +271,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function addMessageToChat(sender, message) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('chat-message');
+    
         // Convert markdown to HTML
-        const htmlContent = marked.parse(message);  // Parses markdown syntax to HTML
-        // Set the innerHTML to the parsed HTML content
-        messageElement.innerHTML = `<strong>${sender}:</strong> ${htmlContent}`;
+        const htmlContent = marked.parse(message); // Parse markdown syntax to HTML
+    
+        // Create a temporary container to manipulate the DOM
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = htmlContent;
+    
+        // Find all <a> tags and update their href attributes
+        const links = tempContainer.querySelectorAll('a');
+        links.forEach(link => {
+            if (link.href.startsWith('sandbox:')) {
+                link.href = link.href.replace('sandbox:', '');
+            }
+        });
+    
+        // Set the innerHTML to the processed HTML content
+        messageElement.innerHTML = `<strong>${sender}:</strong> ${tempContainer.innerHTML}`;
         
         const chatBox = document.getElementById('chatBox');
         chatBox.appendChild(messageElement);
-        chatBox.scrollTop = chatBox.scrollHeight;  // Auto-scroll to the bottom
+        chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to the bottom
     }
 
     async function loadChatSession(CCID) {
@@ -282,9 +320,15 @@ document.addEventListener('DOMContentLoaded', () => {
         chatBox.innerHTML = '';  
         
         // Iterate over the chat messages, skipping the first element (system message)
-        data.result.slice(1).forEach(message => {
-            addMessageToChat(message.role === 'user' ? 'You' : 'Bot', message.content);
+        data.result.slice(0).forEach(message => {
+            if (message.role !== 'system') { // Skip processing when role is 'system'
+                addMessageToChat(message.role === 'user' ? 'You' : 'Bot', message.content);
+            }
+            else {
+                document.getElementById('Personal').setAttribute('value',message.content)
+            }
         });
+        
         document.getElementById('CCID').setAttribute('data-value', CCID );
     }
 
@@ -349,6 +393,60 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error uploading PDF(s):', error);
+        }
+    });
+
+
+    // Show modal when "Edit Personal" button is clicked
+    editPersonalButton.addEventListener('click', () => {
+        // Pre-fill the input with the current personal value
+        const currentPersonal = personalDiv.getAttribute('value') || '';
+        personalInput.value = currentPersonal;
+        personalEditModal.style.display = 'block';
+    });
+
+    // Close modal when 'X' button is clicked
+    closeModalButton.addEventListener('click', () => {
+        personalEditModal.style.display = 'none';
+    });
+
+    // Save the edited personal value
+    savePersonalButton.addEventListener('click', async () =>  {
+        const newPersonalValue = personalInput.value.trim();
+        let value = document.getElementById('CCID').getAttribute('data-value');
+        const response = await fetch('/chat/editPersonal', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')  // CSRF token for security
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ 'CCID': value ,'Personal':newPersonalValue})
+        });
+    
+        // Redirect to login if 403 status
+        if (response.status === 403) {
+            const data = await response.json();
+            window.location.href = data.redirect_url;
+            return;
+        }
+        const data = await response.json();
+        
+        // Update the 'Personal' div's value attribute
+        personalDiv.setAttribute('value', newPersonalValue);
+        if (value!=data.CCID){
+            document.getElementById('CCID').setAttribute('data-value', data.CCID );
+        }
+        // Optionally display confirmation
+        alert('Personal information updated!');
+        // Close the modal
+        personalEditModal.style.display = 'none';
+    });
+
+    // Close modal when user clicks outside the modal content
+    window.addEventListener('click', (event) => {
+        if (event.target === personalEditModal) {
+            personalEditModal.style.display = 'none';
         }
     });
 });
