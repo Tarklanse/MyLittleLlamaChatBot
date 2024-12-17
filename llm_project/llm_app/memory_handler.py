@@ -1,28 +1,32 @@
 import os
 import json
 from datetime import datetime
+from django.conf import settings
 
 # Directory to store chat histories
 BASE_MEMORY_PATH = "memory"
+
 
 def get_user_path(userid):
     """Return path for user's memory folder."""
     return os.path.join(BASE_MEMORY_PATH, str(userid))
 
+
 def get_filepath(userid, timestamp):
     """Return the filepath for a specific chat session based on the given timestamp."""
     return os.path.join(get_user_path(userid), f"{timestamp}.json")
 
+
 def set_memory(newmessage, userid, timestamp=None):
     """Append new messages to an existing memory file or create a new one."""
     user_path = get_user_path(userid)
-    
+
     # Ensure user directory exists
     if not os.path.exists(user_path):
         os.makedirs(user_path)
 
     # Generate timestamp if not provided
-    if timestamp is None or timestamp == '':
+    if timestamp is None or timestamp == "":
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
     memory_file = get_filepath(userid, timestamp)
@@ -30,7 +34,7 @@ def set_memory(newmessage, userid, timestamp=None):
     # Check if the file exists
     if os.path.exists(memory_file):
         # Load existing chat history
-        with open(memory_file, 'r') as file:
+        with open(memory_file, "r") as file:
             chat_history = json.load(file)
     else:
         # Start a new chat history
@@ -40,22 +44,24 @@ def set_memory(newmessage, userid, timestamp=None):
     chat_history.append(newmessage)
 
     # Write the updated chat history to the file
-    with open(memory_file, 'w') as file:
+    with open(memory_file, "w") as file:
         json.dump(chat_history, file)
 
     return timestamp
+
 
 def revert_memory(userid, timestamp):
     """Overwrite the specified message file with a single new message."""
     filepath = get_filepath(userid, timestamp)
     if os.path.exists(filepath):
         # Load existing chat history
-        with open(filepath, 'r') as file:
+        with open(filepath, "r") as file:
             chat_history = json.load(file)
-        with open(filepath, 'w') as file:
+        with open(filepath, "w") as file:
             json.dump(chat_history[:-1], file)
     else:
         print(f"No file found with timestamp {timestamp} for user {userid}")
+
 
 def get_memory(userid, timestamp):
     """Load all chat messages for a specific session file based on the given timestamp."""
@@ -63,11 +69,39 @@ def get_memory(userid, timestamp):
         return None
     filepath = get_filepath(userid, timestamp)
     if os.path.exists(filepath):
-        with open(filepath, 'r') as file:
+        with open(filepath, "r") as file:
             return json.load(file)
     else:
         print(f"No file found with timestamp {timestamp} for user {userid}")
         return None
+
+
+def edit_persenal(userid, timestamp, newpersonal):
+    """Load all chat messages for a specific session file based on the given timestamp."""
+    # Generate timestamp if not provided
+    if timestamp is None or timestamp == "":
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    filepath = get_filepath(userid, timestamp)
+    if os.path.exists(filepath):
+        with open(filepath, "r") as file:
+            chat_history = json.load(file)
+        if chat_history[0]["role"] == "user":
+            chat_history = [{"role": "system", "content": newpersonal}].append(
+                chat_history
+            )
+        else:
+            chat_history[0]["content"] = newpersonal
+
+        with open(filepath, "w") as file:
+            json.dump(chat_history, file)
+        return timestamp
+    else:
+        print(f"No file found with timestamp {timestamp} for user {userid}")
+        chat_history = [{"role": "system", "content": newpersonal}]
+        with open(filepath, "w") as file:
+            json.dump(chat_history, file)
+        return timestamp
+
 
 def delete_memory(userid, timestamp):
     """Delete a specific chat history file based on the given timestamp."""
@@ -79,11 +113,12 @@ def delete_memory(userid, timestamp):
     else:
         print(f"No file found with timestamp {timestamp} for user {userid}")
         return False
-        
+
+
 def list_memory_sessions(userid):
     """List all memory session timestamps for a given user."""
-    user_path = get_user_path(userid)+"\\"
-    
+    user_path = get_user_path(userid) + "/"
+
     if not os.path.exists(user_path):
         print(f"No memory folder found for user {userid}")
         return []
@@ -91,9 +126,18 @@ def list_memory_sessions(userid):
     # List all JSON files in the user's directory and extract timestamps
     memory_sessions = []
     for filename in os.listdir(user_path):
-        #print(filename)
-        if filename.endswith('.json'):
-            timestamp = filename.replace('.json', '')
+        # print(filename)
+        if filename.endswith(".json"):
+            timestamp = filename.replace(".json", "")
             memory_sessions.append(timestamp)
-    
     return sorted(memory_sessions, reverse=True)
+
+
+def memory_to_turple(history_list: list):
+    result = []
+    for obj in history_list:
+        if settings.MODEL_CHAT_FORMAT == "gemma" and obj["role"] == "system":
+            result.append(("assistant", obj["content"]))
+        else:
+            result.append((obj["role"], obj["content"]))
+    return result
