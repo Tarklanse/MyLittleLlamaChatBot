@@ -29,6 +29,7 @@
             <div>
                 <label for="ttsSwitch">Enable TTS</label>
                 <input type="checkbox" id="ttsSwitch">
+                <button type="button" id="editPersonalButton" class="btn">Edit Personal</button>
             </div>
             <!-- Chat history section on the left -->
             
@@ -54,6 +55,20 @@
         </div>
     </div>
     <div id="CCID" data-value=""></div>
+    <div id="Personal" value=""></div>
+    <!-- Blocker overlay -->
+    <!-- Personal Edit Button -->
     
+
+    <!-- Personal Edit Modal -->
+    <div id="personalEditModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="closeModalButton">&times;</span>
+            <h3>Edit Personal Information</h3>
+            <textarea id="personalInput" rows="4" cols="50"></textarea>
+            <button type="button" id="savePersonalButton" class="btn">Save</button>
+        </div>
+    </div>
+
 </body>
 </html>
