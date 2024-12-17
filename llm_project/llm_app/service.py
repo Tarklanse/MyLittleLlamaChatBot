@@ -17,6 +17,8 @@ from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_huggingface import HuggingFacePipeline
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from typing import TypedDict, Annotated
+from langchain_google_vertexai import ChatVertexAI
+
 
 from .llmTools import (
     findBigger,
@@ -25,9 +27,9 @@ from .llmTools import (
     is_prime,
     find_factors,
     genRandomNumber,
+    write_file
 )
 
-memorylib = {}
 model = None
 graph_Config = None
 
@@ -37,8 +39,9 @@ def model_init_gguf():
     model_path = settings.MODEL_PATH
     llm = ChatLlamaCpp(
         model_path=model_path,
-        model_kwargs={"chat_format": settings.MODEL_CHAT_FORMAT, "tensorcores": True},
+        model_kwargs={"chat_format": settings.MODEL_CHAT_FORMAT, "tensorcores": True },
         n_ctx=8192,
+        n_gpu_layers=-1,
         max_tokens=settings.GEN_MAX_TOKEN,
         temperature=settings.GEN_TEMPERATURE,
         repeat_penalty=settings.GEN_REPEAT_PENALTY,
@@ -51,20 +54,21 @@ def model_init_gguf():
         is_prime,
         find_factors,
         genRandomNumber,
+        write_file
     ]
     model = create_react_agent(
         model=llm,
         tools=tools,
         state_schema=CustomState,
         debug=True,
-        state_modifier=settings.SYSTEM_PROMPTS["welcome_message"],
+        state_modifier=settings.SYSTEM_PROMPTS["Default_Personal"],
     )
 
 
 def model_init_opanai():
     global model, graph_Config
     os.environ["OPENAI_API_KEY"] = settings.OPEN_AI_KEY
-    llm = ChatOpenAI(model="gpt-4")
+    llm = ChatOpenAI(model="gpt-4o")
     graph_Config = {"configurable": {"thread_id": "thread-1"}}
     tools = [
         findBigger,
@@ -73,15 +77,36 @@ def model_init_opanai():
         is_prime,
         find_factors,
         genRandomNumber,
+        write_file
     ]
     model = create_react_agent(
         model=llm,
         tools=tools,
         state_schema=CustomState,
         debug=True,
-        state_modifier=settings.SYSTEM_PROMPTS["welcome_message"],
+        state_modifier=settings.SYSTEM_PROMPTS["Default_Personal"],
     )
 
+def model_init_gemini():
+    global model, graph_Config
+    llm = ChatVertexAI(model="gemini-1.5-flash")
+    graph_Config = {"configurable": {"thread_id": "thread-1"}}
+    tools = [
+        findBigger,
+        sortList_asc,
+        sortList_desc,
+        is_prime,
+        find_factors,
+        genRandomNumber,
+        write_file
+    ]
+    model = create_react_agent(
+        model=llm,
+        tools=tools,
+        state_schema=CustomState,
+        debug=True,
+        state_modifier=settings.SYSTEM_PROMPTS["Default_Personal"],
+    )
 
 def model_init_transformer():
     global model, graph_Config
@@ -105,13 +130,14 @@ def model_init_transformer():
         is_prime,
         find_factors,
         genRandomNumber,
+        write_file
     ]
     model = create_react_agent(
         model=chat_model,
         tools=tools,
         state_schema=CustomState,
         debug=True,
-        state_modifier=settings.SYSTEM_PROMPTS["welcome_message"],
+        state_modifier=settings.SYSTEM_PROMPTS["Default_Personal"],
     )
 
 
@@ -121,14 +147,14 @@ def model_predict(input_text, userid, conversessionID):
     messages = get_memory(userid, conversessionID)
 
     if messages is None or len(messages) == 0:
-        # conversessionID = set_memory(
-        #     {
-        #         "role": "system",
-        #         "content": f"{settings.SYSTEM_PROMPTS['welcome_message']}",
-        #     },
-        #     userid,conversessionID
-        # )
         conversessionID = set_memory(
+            {
+                "role": "system",
+                "content": f"{settings.SYSTEM_PROMPTS['Default_Personal']}",
+            },
+            userid,conversessionID
+        )
+        set_memory(
             {"role": "user", "content": input_text}, userid, conversessionID
         )
         messages = get_memory(userid, conversessionID)
@@ -151,7 +177,9 @@ def model_predict_retry(userid, conversessionID):
     if messages is None or len(messages) == 0:
         return True
     else:
-        messages = get_memory(userid, conversessionID)[:-1]
+        messages=get_memory(userid, conversessionID)
+        if messages[-1]["role"]!="user" and messages[-1]["role"]!="system":
+            messages = get_memory(userid, conversessionID)[:-1]
         revert_memory(userid, conversessionID)
 
     output = model.invoke(
@@ -196,7 +224,7 @@ def rag_predict(input_text, userid, conversessionID):
         set_memory(
             {
                 "role": "system",
-                "content": f"{settings.SYSTEM_PROMPTS['welcome_message']}",
+                "content": f"{settings.SYSTEM_PROMPTS['Default_Personal']},This is current chat_id:{conversessionID},use it to query vector store with message if you need it",
             },
             userid,
             conversessionID,
@@ -208,7 +236,7 @@ def rag_predict(input_text, userid, conversessionID):
         messages = get_memory(userid, conversessionID)
     # 向量資料庫有查到東西時，使用組合的提示詞
 
-    ragPersonal = f"{settings.SYSTEM_PROMPTS['welcome_message']}" + readDoc
+    ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
     # print(ragPersonal)
     messages = [
         {"role": "assistant", "content": f"{ragPersonal}"},
@@ -234,7 +262,7 @@ def rag_predict_retry(userid, conversessionID):
         revert_memory(userid, conversessionID)
     last_input = messages[len(messages) - 1]["content"]
     readDoc = queryVector(conversessionID, f"{last_input}")
-    ragPersonal = f"{settings.SYSTEM_PROMPTS['welcome_message']}" + readDoc
+    ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
     # print(ragPersonal)
     messages = [
         {"role": "assistant", "content": f"{ragPersonal}"},
