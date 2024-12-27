@@ -31,11 +31,19 @@ def add_mapping(chatid,vectorid):
     # Write the updated chat history to the file
     with open(theFilePath, 'w') as file:
         json.dump(vecter_mapping, file)
-        
+
 def get_mapping(chat_id):
     filepath = get_vectorMapper_path()
     if os.path.exists(filepath):
         with open(filepath, 'r') as file:
             data = json.load(file)
-            return data.get(chat_id, None) 
+            return data.get(chat_id, None)
 
+def get_All_mapping(chat_id):
+    filepath = get_vectorMapper_path()
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as file:
+            data = json.load(file)
+            return data
+    else:
+        return {}

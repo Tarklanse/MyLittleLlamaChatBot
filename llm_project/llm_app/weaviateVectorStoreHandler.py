@@ -81,7 +81,11 @@ def filter_lines(document, keyword):
         filtered_text.append("\n".join(filtered_lines))
     return filtered_text
 
-
+def get_vector_list():
+    global weaviate_clien
+    weaviate_store_init()
+    vector=weaviate_clien.collections.list_all()
+    return vector
 
 def newVector(chat_id,pdf_file_Path):
     global weaviate_clien
@@ -145,7 +149,7 @@ def viewVector(chat_id,message):
     for docPage in docs:
         thisFileName=docPage.metadata["filename"]
         theContext += docPage.page_content
-        theContext += f"節錄自{thisFileName}\n"
+        theContext += f"\n節錄自{thisFileName}\n"
     
     return theContext
 
@@ -164,3 +168,25 @@ def get_weaviate_retriever(conversessionID):
     )
     return db.as_retriever()
     
+    
+def testloadfiles():
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
+    filepath=get_all_pdfs("./testPath")
+    documents=extract_pdf_content(filepath)
+    print(f"檔案被切分為{len(documents)}塊")
+    fd=filter_table_of_contents(documents)
+    for thisfd in fd:
+        if thisfd.page_content.strip() == "" or thisfd.page_content.strip() == "\n":
+            try:
+                fd.remove(thisfd)
+            except:
+                continue
+    db = WeaviateVectorStore.from_documents(fd, embeddings, client=weaviate_clien)
+    print(db._index_name)
+    print(f"內容清理完成，剩下{len(fd)}塊")
+    docs = db.similarity_search("itpet的主要目的是甚麼?")
+    print(docs)
+
+
+
+#weaviatetest.collections.delete_all()

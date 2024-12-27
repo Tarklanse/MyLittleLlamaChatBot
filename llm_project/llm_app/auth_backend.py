@@ -5,10 +5,11 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import AbstractBaseUser
 
 class SimpleUser(AbstractBaseUser):
-    def __init__(self, username, password=None):
+    def __init__(self, username, role, password=None):
         self.username = username
         self.password = password
-        self.backend=""
+        self.role = role
+        self.backend = ""
         self.is_authenticated = True
 
     def is_authenticated(self):
@@ -47,7 +48,7 @@ class JsonFileBackend(BaseBackend):
         # Check if the username and password match any entry in the JSON file
         for user in users:
             if user['user_acc'] == username and check_password(password, make_password(user['user_ps'])):
-                return SimpleUser(username, password=user['user_ps'])  # Return the simple user object
+                return SimpleUser(username,user['role'], password=user['user_ps'])  # Return the simple user object
 
         return None
 

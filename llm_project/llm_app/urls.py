@@ -14,4 +14,7 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('chat/upload_pdf', views.upload_pdf, name='upload_pdf'),
     path('api/download_AI_Gen_file/<str:filename>/', views.download_AI_Gen_file, name='download_file'),
+    path('login_manage/', views.login_view_manage, name='login_manage'),
+    path("manage/users", views.manage_users_view, name="manage_users"),
+    path("manage/vectors", views.manage_vector_view, name="manage_vectors"),
 ]

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'llm_app/manage_users.css' %}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>User Management</h1>
+        </header>
+
+        <main>
+            <!-- User List Table -->
+            <section class="user-list">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTable">
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.user_acc }}</td>
+                            <td>{{ user.role }}</td>
+                            <td>
+                                <button class="btn edit-button" onclick="openEditPopup('{{ user.user_acc }}', '{{ user.role }}')">Edit</button>
+                                <button class="btn remove-button" onclick="deleteUser('{{ user.user_acc }}')">Remove</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="action-buttons">
+                    <button class="btn add-user-button" onclick="openAddPopup()">Add User</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit User Pop-Out -->
+    <div id="editPopup" class="popup hidden">
+        <div class="popup-content">
+            <span class="close-btn" onclick="closeEditPopup()">&times;</span>
+            <h2>Edit User</h2>
+            <form id="editUserForm">
+                <label for="editUsername">Username:</label>
+                <input type="text" id="editUsername" name="username" >
+                <label for="editPassword">Password:</label>
+                <input type="password" id="editPassword" name="password" >
+                <label for="editRole">Role:</label>
+                <select id="editRole" name="role">
+                    <option value="admin">Admin</option>
+                    <option value="user">User</option>
+                </select>
+
+                <button type="button" onclick="saveUserChanges()">Save Changes</button>
+            </form>
+        </div>
+    </div>
+    <div id="addPopup" class="popup hidden">
+        <div class="popup-content">
+            <h2>Add User</h2>
+            <form onsubmit="return false;">
+                <label for="addUsername">Username:</label>
+                <input type="text" id="addUsername" placeholder="Enter username" required />
+    
+                <label for="addPassword">Password:</label>
+                <input type="password" id="addPassword" placeholder="Enter password" required />
+    
+                <label for="addRole">Role:</label>
+                <input type="text" id="addRole" placeholder="Enter role (optional)" />
+    
+                <div class="popup-actions">
+                    <button type="button" class="btn" onclick="addUser()">Save</button>
+                    <button type="button" class="btn" onclick="closeAddPopup()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- External JavaScript -->
+    <script src="{% static 'llm_app/manage_users.js' %}"></script>
+</body>
+</html>

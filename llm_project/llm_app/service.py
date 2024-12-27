@@ -27,7 +27,9 @@ from .llmTools import (
     is_prime,
     find_factors,
     genRandomNumber,
-    write_file
+    write_file,
+    query_vector,
+    custom_code
 )
 
 model = None
@@ -37,15 +39,26 @@ graph_Config = None
 def model_init_gguf():
     global model, graph_Config
     model_path = settings.MODEL_PATH
-    llm = ChatLlamaCpp(
-        model_path=model_path,
-        model_kwargs={"chat_format": settings.MODEL_CHAT_FORMAT, "tensorcores": True },
-        n_ctx=8192,
-        n_gpu_layers=-1,
-        max_tokens=settings.GEN_MAX_TOKEN,
-        temperature=settings.GEN_TEMPERATURE,
-        repeat_penalty=settings.GEN_REPEAT_PENALTY,
-    )
+    if settings.MODEL_CHAT_FORMAT=='':
+        llm = ChatLlamaCpp(
+            model_path=model_path,
+            model_kwargs={"tensorcores": True },
+            n_ctx=8192,
+            n_gpu_layers=-1,
+            max_tokens=settings.GEN_MAX_TOKEN,
+            temperature=settings.GEN_TEMPERATURE,
+            repeat_penalty=settings.GEN_REPEAT_PENALTY,
+        )
+    else:
+        llm = ChatLlamaCpp(
+            model_path=model_path,
+            model_kwargs={"chat_format": settings.MODEL_CHAT_FORMAT, "tensorcores": True },
+            n_ctx=8192,
+            n_gpu_layers=-1,
+            max_tokens=settings.GEN_MAX_TOKEN,
+            temperature=settings.GEN_TEMPERATURE,
+            repeat_penalty=settings.GEN_REPEAT_PENALTY,
+        )
     graph_Config = {"configurable": {"thread_id": "thread-1"}}
     tools = [
         findBigger,
@@ -77,7 +90,9 @@ def model_init_opanai():
         is_prime,
         find_factors,
         genRandomNumber,
-        write_file
+        write_file,
+        custom_code,
+        query_vector
     ]
     model = create_react_agent(
         model=llm,
@@ -239,11 +254,38 @@ def rag_predict(input_text, userid, conversessionID):
     ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
     # print(ragPersonal)
     messages = [
-        {"role": "assistant", "content": f"{ragPersonal}"},
+        {"role": "assistant", "content": f"{ragPersonal},This is current chat_id:{conversessionID},use it to query vector store with message if you need it"},
         {"role": "user", "content": input_text},
     ]
     output = model.invoke(
-        {"messages": memory_to_turple(messages)},
+        {"messages": memory_to_turple(messages), "is_last_step": False},
+    )
+    result = output["messages"][-1].content
+    print(result)
+    set_memory({"role": "assistant", "content": result}, userid, conversessionID)
+    return result, conversessionID
+
+def rag_predict_openai(input_text, userid, conversessionID):
+    global model
+    messages = get_memory(userid, conversessionID)
+
+    if messages is None:
+        set_memory(
+            {
+                "role": "system",
+                "content": f"{settings.SYSTEM_PROMPTS['Default_Personal']},This is current chat_id:{conversessionID},use it to query vector store with message if you need it",
+            },
+            userid,
+            conversessionID,
+        )
+        set_memory({"role": "user", "content": input_text}, userid, conversessionID)
+        messages = get_memory(userid, conversessionID)
+    else:
+        set_memory({"role": "user", "content": input_text}, userid, conversessionID)
+        messages = get_memory(userid, conversessionID)
+
+    output = model.invoke(
+        {"messages": memory_to_turple(messages), "is_last_step": False},
     )
     result = output["messages"][-1].content
     print(result)
@@ -268,6 +310,24 @@ def rag_predict_retry(userid, conversessionID):
         {"role": "assistant", "content": f"{ragPersonal}"},
         {"role": "user", "content": last_input},
     ]
+    output = model.invoke(
+        {"messages": memory_to_turple(messages), "is_last_step": False},
+    )
+    result = output["messages"][-1].content
+    print(result)
+    set_memory({"role": "assistant", "content": result}, userid, conversessionID)
+    return result, conversessionID
+
+def rag_predict_retry_openai(userid, conversessionID):
+    global model
+    messages = get_memory(userid, conversessionID)
+
+    if messages is None or len(messages) == 0:
+        return True
+    else:
+        messages = get_memory(userid, conversessionID)[:-1]
+        revert_memory(userid, conversessionID)
+    last_input = messages[len(messages) - 1]["content"]
     output = model.invoke(
         {"messages": memory_to_turple(messages)},
     )
