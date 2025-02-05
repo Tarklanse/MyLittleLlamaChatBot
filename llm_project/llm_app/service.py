@@ -134,6 +134,7 @@ def model_init_transformer():
         model=model,
         tokenizer=tokenizer,
         max_new_tokens=settings.GEN_MAX_TOKEN,
+        return_full_text=False,
     )
     hf = HuggingFacePipeline(pipeline=pipe)
     chat_model = ChatHuggingFace(llm=hf)
