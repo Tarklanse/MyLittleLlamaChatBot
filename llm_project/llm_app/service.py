@@ -196,11 +196,14 @@ def model_predict_retry(userid, conversessionID):
         messages=get_memory(userid, conversessionID)
         if messages[-1]["role"]!="user" and messages[-1]["role"]!="system":
             messages = get_memory(userid, conversessionID)[:-1]
+    try:
+        output = model.invoke(
+            {"messages": memory_to_turple(messages), "is_last_step": False},
+        )
         revert_memory(userid, conversessionID)
-
-    output = model.invoke(
-        {"messages": memory_to_turple(messages), "is_last_step": False},
-    )
+    except Exception as e:
+        print(e)
+        raise
     result = output["messages"][-1].content
     # print(result)
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
@@ -302,7 +305,6 @@ def rag_predict_retry(userid, conversessionID):
         return True
     else:
         messages = get_memory(userid, conversessionID)[:-1]
-        revert_memory(userid, conversessionID)
     last_input = messages[len(messages) - 1]["content"]
     readDoc = queryVector(conversessionID, f"{last_input}")
     ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
@@ -311,9 +313,14 @@ def rag_predict_retry(userid, conversessionID):
         {"role": "assistant", "content": f"{ragPersonal}"},
         {"role": "user", "content": last_input},
     ]
-    output = model.invoke(
-        {"messages": memory_to_turple(messages), "is_last_step": False},
-    )
+    try:
+        output = model.invoke(
+            {"messages": memory_to_turple(messages)},
+        )
+        revert_memory(userid, conversessionID)
+    except Exception as e:
+        print(e)
+        raise
     result = output["messages"][-1].content
     print(result)
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
@@ -327,11 +334,14 @@ def rag_predict_retry_openai(userid, conversessionID):
         return True
     else:
         messages = get_memory(userid, conversessionID)[:-1]
+    try:
+        output = model.invoke(
+            {"messages": memory_to_turple(messages)},
+        )
         revert_memory(userid, conversessionID)
-    last_input = messages[len(messages) - 1]["content"]
-    output = model.invoke(
-        {"messages": memory_to_turple(messages)},
-    )
+    except Exception as e:
+        print(e)
+        raise
     result = output["messages"][-1].content
     print(result)
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
