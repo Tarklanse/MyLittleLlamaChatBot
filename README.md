@@ -20,10 +20,13 @@ python llm_project\manage.py runserver 0.0.0.0:8123 --noreload
 
 設定:  
 帳號密碼在llm_project/llm_app/user.json中  
+  -預設的帳號密碼user1/password1為預設管理員
+  -預設的帳號密碼user2/password2為預設使用者
+  `可以使用/login_manage/使用user1登入後進行使用者增加與修改
 在llm_project/llm_project/settings.py中  
 SYSTEM_PROMPTS:系統文字，其中Default_Personal是所有對話的系統提示詞  
 MODEL_PATH:是指定的模型路徑  
-MODEL_CHAT_FORMAT 對應llama.cpp中的chat format,需注意gemma系列的模型不接受system prompts,使用Gemma系列的Model內部程式會將System prompts轉換為一個隱藏訊息  
+MODEL_CHAT_FORMAT 對應llama.cpp中的chat format,若不確定就留空,將使用模型自帶的chat format,需注意gemma系列的模型不接受system prompts,使用Gemma系列的Model內部程式會將System prompts轉換為一個隱藏訊息  
 GEN_TEMPERATURE: 文字生成溫度  
 GEN_REPEAT_PENALTY: 文字重複懲罰  
 GEN_MAX_TOKEN:最大回應的Token數量  
