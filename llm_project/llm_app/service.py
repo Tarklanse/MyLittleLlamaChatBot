@@ -1,14 +1,10 @@
 import os
-import re
-import llama_cpp
-import requests
 from django.conf import settings
 from .memory_handler import set_memory, revert_memory, get_memory, memory_to_turple
 from .weaviateVectorStoreHandler import queryVector
 from langchain_community.chat_models import ChatLlamaCpp
 from langchain_core.tools import tool
 from langchain_core.messages.base import BaseMessage
-from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import create_react_agent
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -17,7 +13,8 @@ from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_huggingface import HuggingFacePipeline
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from typing import TypedDict, Annotated
-from langchain_google_vertexai import ChatVertexAI
+import re
+
 
 
 from .llmTools import (
@@ -45,6 +42,8 @@ def model_init_gguf():
             model_kwargs={"tensorcores": True },
             n_ctx=8192,
             n_gpu_layers=-1,
+            top_k=0,
+            top_p=1,
             max_tokens=settings.GEN_MAX_TOKEN,
             temperature=settings.GEN_TEMPERATURE,
             repeat_penalty=settings.GEN_REPEAT_PENALTY,
@@ -55,6 +54,8 @@ def model_init_gguf():
             model_kwargs={"chat_format": settings.MODEL_CHAT_FORMAT, "tensorcores": True },
             n_ctx=8192,
             n_gpu_layers=-1,
+            top_k=0,
+            top_p=1,
             max_tokens=settings.GEN_MAX_TOKEN,
             temperature=settings.GEN_TEMPERATURE,
             repeat_penalty=settings.GEN_REPEAT_PENALTY,
@@ -81,7 +82,7 @@ def model_init_gguf():
 def model_init_opanai():
     global model, graph_Config
     os.environ["OPENAI_API_KEY"] = settings.OPEN_AI_KEY
-    llm = ChatOpenAI(model="gpt-4o")
+    llm = ChatOpenAI(model="gpt4o")
     graph_Config = {"configurable": {"thread_id": "thread-1"}}
     tools = [
         findBigger,
@@ -93,27 +94,6 @@ def model_init_opanai():
         write_file,
         custom_code,
         query_vector
-    ]
-    model = create_react_agent(
-        model=llm,
-        tools=tools,
-        state_schema=CustomState,
-        debug=True,
-        state_modifier=settings.SYSTEM_PROMPTS["Default_Personal"],
-    )
-
-def model_init_gemini():
-    global model, graph_Config
-    llm = ChatVertexAI(model="gemini-1.5-flash")
-    graph_Config = {"configurable": {"thread_id": "thread-1"}}
-    tools = [
-        findBigger,
-        sortList_asc,
-        sortList_desc,
-        is_prime,
-        find_factors,
-        genRandomNumber,
-        write_file
     ]
     model = create_react_agent(
         model=llm,
@@ -181,7 +161,10 @@ def model_predict(input_text, userid, conversessionID):
         {"messages": memory_to_turple(messages), "is_last_step": False},
     )
     result = output["messages"][-1].content
-    print(result)
+    #print(result)
+    if "<think>" in result and "</think>" in result:
+        result = remove_think(result)
+        
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
 
@@ -196,6 +179,7 @@ def model_predict_retry(userid, conversessionID):
         messages=get_memory(userid, conversessionID)
         if messages[-1]["role"]!="user" and messages[-1]["role"]!="system":
             messages = get_memory(userid, conversessionID)[:-1]
+        
     try:
         output = model.invoke(
             {"messages": memory_to_turple(messages), "is_last_step": False},
@@ -206,6 +190,8 @@ def model_predict_retry(userid, conversessionID):
         raise
     result = output["messages"][-1].content
     # print(result)
+    if "<think>" in result and "</think>" in result:
+        result = remove_think(result)
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
 
@@ -265,7 +251,8 @@ def rag_predict(input_text, userid, conversessionID):
         {"messages": memory_to_turple(messages), "is_last_step": False},
     )
     result = output["messages"][-1].content
-    print(result)
+    if "<think>" in result and "</think>" in result:
+        result = remove_think(result)
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
 
@@ -292,7 +279,7 @@ def rag_predict_openai(input_text, userid, conversessionID):
         {"messages": memory_to_turple(messages), "is_last_step": False},
     )
     result = output["messages"][-1].content
-    print(result)
+
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
 
@@ -305,6 +292,7 @@ def rag_predict_retry(userid, conversessionID):
         return True
     else:
         messages = get_memory(userid, conversessionID)[:-1]
+        
     last_input = messages[len(messages) - 1]["content"]
     readDoc = queryVector(conversessionID, f"{last_input}")
     ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
@@ -322,7 +310,8 @@ def rag_predict_retry(userid, conversessionID):
         print(e)
         raise
     result = output["messages"][-1].content
-    print(result)
+    if "<think>" in result and "</think>" in result:
+        result = remove_think(result)
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
 
@@ -334,6 +323,8 @@ def rag_predict_retry_openai(userid, conversessionID):
         return True
     else:
         messages = get_memory(userid, conversessionID)[:-1]
+        
+    #last_input = messages[len(messages) - 1]["content"]
     try:
         output = model.invoke(
             {"messages": memory_to_turple(messages)},
@@ -347,6 +338,9 @@ def rag_predict_retry_openai(userid, conversessionID):
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
 
+def remove_think(message):
+    return re.sub(r"<think>[\s\S]*?</think>", "", str(message))
+
 
 class State(TypedDict):
     messages: Annotated[list, add_messages]
@@ -356,3 +350,4 @@ class CustomState(TypedDict):
     today: str
     messages: Annotated[list[BaseMessage], add_messages]
     is_last_step: str
+    remaining_steps : int
