@@ -74,7 +74,7 @@ def model_init_gguf():
         tools=tools,
         state_schema=CustomState,
         debug=True,
-        state_modifier=settings.SYSTEM_PROMPTS["Default_Personal"],
+        prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
     )
 
 
@@ -99,7 +99,7 @@ def model_init_opanai():
         tools=tools,
         state_schema=CustomState,
         debug=True,
-        state_modifier=settings.SYSTEM_PROMPTS["Default_Personal"],
+        prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
     )
 
 def model_init_transformer():
@@ -132,7 +132,7 @@ def model_init_transformer():
         tools=tools,
         state_schema=CustomState,
         debug=True,
-        state_modifier=settings.SYSTEM_PROMPTS["Default_Personal"],
+        prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
     )
 
 
