@@ -61,6 +61,8 @@ def llm_api(request):
                 result, conversessionID = model_predict(prompt, user_id, tempid)
             elif settings.MODEL_TYPE == "openai" and vectorId is not None:
                 result, conversessionID = rag_predict_openai(prompt, user_id, tempid)
+            elif settings.MODEL_TYPE == "api" and vectorId is not None:
+                result, conversessionID = rag_predict_openai(prompt, user_id, tempid)
             else:
                 result, conversessionID = rag_predict(prompt, user_id, tempid)
             return Response(

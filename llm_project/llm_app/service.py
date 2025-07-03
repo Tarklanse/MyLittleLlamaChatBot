@@ -12,6 +12,8 @@ from langchain_huggingface import ChatHuggingFace
 from langchain_huggingface import HuggingFacePipeline
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from typing import TypedDict, Annotated
+from langchain_google_vertexai import VertexAI
+
 import re
 
 
@@ -82,6 +84,34 @@ def model_init_opanai():
     global model, graph_Config
     os.environ["OPENAI_API_KEY"] = settings.OPEN_AI_KEY
     llm = ChatOpenAI(model="gpt4o")
+    graph_Config = {"configurable": {"thread_id": "thread-1"}}
+    tools = [
+        findBigger,
+        sortList_asc,
+        sortList_desc,
+        is_prime,
+        find_factors,
+        genRandomNumber,
+        write_file,
+        custom_code,
+        query_vector
+    ]
+    model = create_react_agent(
+        model=llm,
+        tools=tools,
+        state_schema=CustomState,
+        debug=True,
+        prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
+    )
+
+def model_init_api():
+    global model, graph_Config
+    os.environ["OPENAI_API_KEY"] = settings.OPEN_AI_KEY
+    llm = ChatOpenAI(
+        model="model",  
+        openai_api_base=settings.MODEL_API_URL,  
+        openai_api_key="sk-no-key-required" 
+    )
     graph_Config = {"configurable": {"thread_id": "thread-1"}}
     tools = [
         findBigger,
