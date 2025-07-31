@@ -52,6 +52,14 @@
                 </div>
             </form>
             <div id="blocker" class="blocker" style="display: none;"></div>
+            <div class="upload-container hidden">
+                <h3>Upload PDF(s)</h3>
+                <form id="pdfUploadForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="file" id="pdfInput" name="pdf_files" accept="application/pdf" multiple>
+                    <button type="button" id="uploadButton">Upload</button>
+                </form>
+            </div>
         </div>
     </div>
     <div id="CCID" data-value=""></div>
