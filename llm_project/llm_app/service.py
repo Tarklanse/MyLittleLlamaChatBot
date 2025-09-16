@@ -1,6 +1,6 @@
 import os
 from django.conf import settings
-from .memory_handler import set_memory, revert_memory, get_memory, memory_to_turple
+from .memory_handler import set_memory, revert_memory, get_memory, memory_to_turple, load_history_from_json
 from .weaviateVectorStoreHandler import queryVector
 from langchain_community.chat_models import ChatLlamaCpp
 from langchain_core.tools import tool
@@ -27,7 +27,8 @@ from .llmTools import (
     genRandomNumber,
     write_file,
     query_vector,
-    custom_code
+    custom_code,
+    sumNumbers,
 )
 
 model = None
@@ -69,7 +70,8 @@ def model_init_gguf():
         is_prime,
         find_factors,
         genRandomNumber,
-        write_file
+        write_file,
+        sumNumbers,
     ]
     model = create_react_agent(
         model=llm,
@@ -94,7 +96,8 @@ def model_init_opanai():
         genRandomNumber,
         write_file,
         custom_code,
-        query_vector
+        query_vector,
+        sumNumbers,
     ]
     model = create_react_agent(
         model=llm,
@@ -121,8 +124,9 @@ def model_init_api():
         find_factors,
         genRandomNumber,
         write_file,
-        custom_code,
-        query_vector
+        #custom_code,
+        #query_vector,
+        sumNumbers,
     ]
     model = create_react_agent(
         model=llm,
@@ -155,7 +159,8 @@ def model_init_transformer():
         is_prime,
         find_factors,
         genRandomNumber,
-        write_file
+        write_file,
+        sumNumbers,
     ]
     model = create_react_agent(
         model=chat_model,
@@ -186,8 +191,9 @@ def model_predict(input_text, userid, conversessionID):
     else:
         set_memory({"role": "user", "content": input_text}, userid, conversessionID)
         messages = get_memory(userid, conversessionID)
+    input_message = load_history_from_json(memory_to_turple(messages))
     output = model.invoke(
-        {"messages": memory_to_turple(messages), "is_last_step": False},
+        {"messages": input_message.chat_memory.messages},
     )
     result = output["messages"][-1].content
     #print(result)
@@ -210,8 +216,9 @@ def model_predict_retry(userid, conversessionID):
             messages = get_memory(userid, conversessionID)[:-1]
         
     try:
+        input_message = load_history_from_json(memory_to_turple(messages))
         output = model.invoke(
-            {"messages": memory_to_turple(messages), "is_last_step": False},
+            {"messages": input_message.chat_memory.messages},
         )
         revert_memory(userid, conversessionID)
     except Exception as e:
@@ -276,8 +283,9 @@ def rag_predict(input_text, userid, conversessionID):
         {"role": "assistant", "content": f"{ragPersonal},This is current chat_id:{conversessionID},use it to query vector store with message if you need it"},
         {"role": "user", "content": input_text},
     ]
+    input_message = load_history_from_json(memory_to_turple(messages))
     output = model.invoke(
-        {"messages": memory_to_turple(messages), "is_last_step": False},
+        {"messages": input_message.chat_memory.messages},
     )
     result = output["messages"][-1].content
     if "<think>" in result and "</think>" in result:
@@ -304,8 +312,9 @@ def rag_predict_openai(input_text, userid, conversessionID):
         set_memory({"role": "user", "content": input_text}, userid, conversessionID)
         messages = get_memory(userid, conversessionID)
 
+    input_message = load_history_from_json(memory_to_turple(messages))
     output = model.invoke(
-        {"messages": memory_to_turple(messages), "is_last_step": False},
+        {"messages": input_message.chat_memory.messages},
     )
     result = output["messages"][-1].content
 
@@ -331,8 +340,9 @@ def rag_predict_retry(userid, conversessionID):
         {"role": "user", "content": last_input},
     ]
     try:
+        input_message = load_history_from_json(memory_to_turple(messages))
         output = model.invoke(
-            {"messages": memory_to_turple(messages)},
+            {"messages": input_message.chat_memory.messages},
         )
         revert_memory(userid, conversessionID)
     except Exception as e:
@@ -355,8 +365,9 @@ def rag_predict_retry_openai(userid, conversessionID):
         
     #last_input = messages[len(messages) - 1]["content"]
     try:
+        input_message = load_history_from_json(memory_to_turple(messages))
         output = model.invoke(
-            {"messages": memory_to_turple(messages)},
+            {"messages": input_message.chat_memory.messages},
         )
         revert_memory(userid, conversessionID)
     except Exception as e:

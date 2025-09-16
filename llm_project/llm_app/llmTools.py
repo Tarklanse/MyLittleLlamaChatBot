@@ -20,6 +20,12 @@ def genRandomNumber(a: int, b: int) -> int:
         return random.randint(b, a)
     else:
         return random.randint(a, b)
+    
+    
+@tool
+def sumNumbers(a: int, b: int) -> int:
+    """This function will add two given numbers and return result."""
+    return a + b
 
 
 @tool

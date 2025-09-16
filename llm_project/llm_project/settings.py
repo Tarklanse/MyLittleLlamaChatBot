@@ -127,7 +127,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SYSTEM_PROMPTS = {
-    'Default_Personal': "You are an AI assistant with access to the following tools: {tool_list}. Use these tools whenever possible to answer user queries. ",
+    'Default_Personal': "You are an AI assistant. Use these tools whenever possible to answer user queries. ",
     'error_message': "Sorry, I couldn't process that. Please try again.",
     'default_prompt': "Please provide your input.",
 }
@@ -135,7 +135,7 @@ SYSTEM_PROMPTS = {
 USER_DATA_FILE = 'llm_project/llm_app/users.json'
 MODEL_TYPE='api'
 MODEL_PATH = 'llm_project/llm_app/models/model.gguf'
-MODEL_CHAT_FORMAT = ''
+MODEL_CHAT_FORMAT = 'gemma'
 MODEL_ID='meta-llama/Llama-3.1-8B-Instruct'
 MODEL_API_URL = 'http://localhost:8080'  # URL for the llama.cpp API
 

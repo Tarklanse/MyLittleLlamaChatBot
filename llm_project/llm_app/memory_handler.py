@@ -2,6 +2,9 @@ import os
 import json
 from datetime import datetime
 from django.conf import settings
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain.memory import ConversationBufferMemory
+from langchain.schema import SystemMessage, HumanMessage, AIMessage
 
 # Directory to store chat histories
 BASE_MEMORY_PATH = "memory"
@@ -75,6 +78,24 @@ def get_memory(userid, timestamp):
         print(f"No file found with timestamp {timestamp} for user {userid}")
         return None
 
+def load_history_from_json(json_data):
+    """
+    json_data: list of dicts, each has at least 'role' and 'content'
+    returns: a ChatMessageHistory instance with messages
+    """
+    restored_messages = []
+    for m in json_data:
+        role = m[0]
+        content = m[1]
+        if role == "system":
+            restored_messages.append(SystemMessage(content=content))
+        elif role == "user":
+            restored_messages.append(HumanMessage(content=content))
+        elif role == "assistant":
+            restored_messages.append(AIMessage(content=content))
+    chat_history = ChatMessageHistory(messages=restored_messages)
+    memory = ConversationBufferMemory(chat_memory=chat_history, return_messages=True)
+    return memory
 
 def edit_persenal(userid, timestamp, newpersonal):
     """Load all chat messages for a specific session file based on the given timestamp."""

@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 from django.conf import settings
+import os
 from .service import model_init_gguf,model_init_opanai,model_init_api,model_init_transformer
 import queue
 
@@ -10,6 +11,10 @@ class LlmAppConfig(AppConfig):
 
     def ready(self):
         print('ready')
+        os.environ['LANGSMITH_TRACING'] = "false"
+        os.environ['LANGSMITH_ENDPOINT'] = "https://api.smith.langchain.com"
+        os.environ['LANGSMITH_API_KEY'] = "..."
+        os.environ['LANGSMITH_PROJECT'] = "..."
         if settings.MODEL_TYPE == 'transformer':
             model_init_transformer()
         elif settings.MODEL_TYPE == 'openai':
