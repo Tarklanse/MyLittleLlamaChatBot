@@ -11,10 +11,10 @@ class LlmAppConfig(AppConfig):
 
     def ready(self):
         print('ready')
-        os.environ['LANGSMITH_TRACING'] = "false"
-        os.environ['LANGSMITH_ENDPOINT'] = "https://api.smith.langchain.com"
-        os.environ['LANGSMITH_API_KEY'] = "..."
-        os.environ['LANGSMITH_PROJECT'] = "..."
+        os.environ['LANGSMITH_TRACING'] = settings.LANGSMITH_TRACING
+        os.environ['LANGSMITH_ENDPOINT'] = settings.LANGSMITH_ENDPOINT
+        os.environ['LANGSMITH_API_KEY'] = settings.LANGSMITH_API_KEY
+        os.environ['LANGSMITH_PROJECT'] = settings.LANGSMITH_PROJECT
         if settings.MODEL_TYPE == 'transformer':
             model_init_transformer()
         elif settings.MODEL_TYPE == 'openai':

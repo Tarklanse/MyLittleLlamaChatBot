@@ -127,7 +127,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SYSTEM_PROMPTS = {
-    'Default_Personal': "You are an AI assistant. Use these tools whenever possible to answer user queries. ",
+    'Default_Personal': "You are an AI assistant.Answer user's question,make response to them.If you really need Use these tools whenever possible to answer user queries . ",
     'error_message': "Sorry, I couldn't process that. Please try again.",
     'default_prompt': "Please provide your input.",
 }
@@ -165,3 +165,11 @@ GEN_REPEAT_PENALTY = 1.5
 GEN_MAX_TOKEN = 4096
 
 OPEN_AI_KEY = ""
+
+LANGSMITH_TRACING="false"
+
+LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+
+LANGSMITH_API_KEY=""
+
+LANGSMITH_PROJECT=""
