@@ -32,11 +32,10 @@ from .llmTools import (
 )
 
 model = None
-graph_Config = None
 
 
 def model_init_gguf():
-    global model, graph_Config
+    global model
     model_path = settings.MODEL_PATH
     if settings.MODEL_CHAT_FORMAT=='':
         llm = ChatLlamaCpp(
@@ -62,7 +61,6 @@ def model_init_gguf():
             temperature=settings.GEN_TEMPERATURE,
             repeat_penalty=settings.GEN_REPEAT_PENALTY,
         )
-    graph_Config = {"configurable": {"thread_id": "thread-1"}}
     tools = [
         findBigger,
         sortList_asc,
@@ -83,10 +81,9 @@ def model_init_gguf():
 
 
 def model_init_opanai():
-    global model, graph_Config
+    global model
     os.environ["OPENAI_API_KEY"] = settings.OPEN_AI_KEY
     llm = ChatOpenAI(model="gpt4o")
-    graph_Config = {"configurable": {"thread_id": "thread-1"}}
     tools = [
         findBigger,
         sortList_asc,
@@ -108,14 +105,13 @@ def model_init_opanai():
     )
 
 def model_init_api():
-    global model, graph_Config
+    global model
     os.environ["OPENAI_API_KEY"] = settings.OPEN_AI_KEY
     llm = ChatOpenAI(
         model="model",  
         openai_api_base=settings.MODEL_API_URL,  
         openai_api_key="sk-no-key-required" 
     )
-    graph_Config = {"configurable": {"thread_id": "thread-1"}}
     tools = [
         findBigger,
         sortList_asc,
@@ -137,7 +133,7 @@ def model_init_api():
     )
 
 def model_init_transformer():
-    global model, graph_Config
+    global model
     model_id = settings.MODEL_ID
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
@@ -151,7 +147,6 @@ def model_init_transformer():
     )
     hf = HuggingFacePipeline(pipeline=pipe)
     chat_model = ChatHuggingFace(llm=hf)
-    graph_Config = {"configurable": {"thread_id": "thread-1"}}
     tools = [
         findBigger,
         sortList_asc,
@@ -173,7 +168,6 @@ def model_init_transformer():
 
 def model_predict(input_text, userid, conversessionID):
     global model
-    global graph_Config
     messages = get_memory(userid, conversessionID)
 
     if messages is None or len(messages) == 0:
@@ -193,7 +187,7 @@ def model_predict(input_text, userid, conversessionID):
         messages = get_memory(userid, conversessionID)
     input_message = load_history_from_json(memory_to_turple(messages))
     output = model.invoke(
-        {"messages": input_message.chat_memory.messages},
+        {"messages": input_message.messages},
     )
     result = output["messages"][-1].content
     #print(result)
@@ -214,13 +208,13 @@ def model_predict_retry(userid, conversessionID):
         messages=get_memory(userid, conversessionID)
         if messages[-1]["role"]!="user" and messages[-1]["role"]!="system":
             messages = get_memory(userid, conversessionID)[:-1]
+            revert_memory(userid, conversessionID)
         
     try:
         input_message = load_history_from_json(memory_to_turple(messages))
         output = model.invoke(
-            {"messages": input_message.chat_memory.messages},
+            {"messages": input_message.messages},
         )
-        revert_memory(userid, conversessionID)
     except Exception as e:
         print(e)
         raise
@@ -285,7 +279,7 @@ def rag_predict(input_text, userid, conversessionID):
     ]
     input_message = load_history_from_json(memory_to_turple(messages))
     output = model.invoke(
-        {"messages": input_message.chat_memory.messages},
+        {"messages": input_message.messages},
     )
     result = output["messages"][-1].content
     if "<think>" in result and "</think>" in result:
@@ -314,7 +308,7 @@ def rag_predict_openai(input_text, userid, conversessionID):
 
     input_message = load_history_from_json(memory_to_turple(messages))
     output = model.invoke(
-        {"messages": input_message.chat_memory.messages},
+        {"messages": input_message.messages},
     )
     result = output["messages"][-1].content
 
@@ -331,6 +325,10 @@ def rag_predict_retry(userid, conversessionID):
     else:
         messages = get_memory(userid, conversessionID)[:-1]
         
+    if messages[-1]["role"]!="user" and messages[-1]["role"]!="system":
+        messages = get_memory(userid, conversessionID)[:-1]
+        revert_memory(userid, conversessionID)
+        
     last_input = messages[len(messages) - 1]["content"]
     readDoc = queryVector(conversessionID, f"{last_input}")
     ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
@@ -342,9 +340,8 @@ def rag_predict_retry(userid, conversessionID):
     try:
         input_message = load_history_from_json(memory_to_turple(messages))
         output = model.invoke(
-            {"messages": input_message.chat_memory.messages},
+            {"messages": input_message.messages},
         )
-        revert_memory(userid, conversessionID)
     except Exception as e:
         print(e)
         raise
@@ -362,14 +359,15 @@ def rag_predict_retry_openai(userid, conversessionID):
         return True
     else:
         messages = get_memory(userid, conversessionID)[:-1]
-        
+    if messages[-1]["role"]!="user" and messages[-1]["role"]!="system":
+        messages = get_memory(userid, conversessionID)[:-1]
+        revert_memory(userid, conversessionID)
     #last_input = messages[len(messages) - 1]["content"]
     try:
         input_message = load_history_from_json(memory_to_turple(messages))
         output = model.invoke(
-            {"messages": input_message.chat_memory.messages},
+            {"messages": input_message.messages},
         )
-        revert_memory(userid, conversessionID)
     except Exception as e:
         print(e)
         raise

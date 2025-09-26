@@ -94,8 +94,7 @@ def load_history_from_json(json_data):
         elif role == "assistant":
             restored_messages.append(AIMessage(content=content))
     chat_history = ChatMessageHistory(messages=restored_messages)
-    memory = ConversationBufferMemory(chat_memory=chat_history, return_messages=True)
-    return memory
+    return chat_history
 
 def edit_persenal(userid, timestamp, newpersonal):
     """Load all chat messages for a specific session file based on the given timestamp."""
