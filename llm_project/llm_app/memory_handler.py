@@ -3,8 +3,7 @@ import json
 from datetime import datetime
 from django.conf import settings
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain.memory import ConversationBufferMemory
-from langchain.schema import SystemMessage, HumanMessage, AIMessage
+from langchain.messages  import SystemMessage, HumanMessage, AIMessage
 
 # Directory to store chat histories
 BASE_MEMORY_PATH = "memory"

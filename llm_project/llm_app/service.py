@@ -1,21 +1,25 @@
 import os
 from django.conf import settings
-from .memory_handler import set_memory, revert_memory, get_memory, memory_to_turple, load_history_from_json
+from .memory_handler import (
+    set_memory,
+    revert_memory,
+    get_memory,
+    memory_to_turple,
+    load_history_from_json,
+)
 from .weaviateVectorStoreHandler import queryVector
 from langchain_community.chat_models import ChatLlamaCpp
 from langchain_core.tools import tool
 from langchain_core.messages.base import BaseMessage
 from langgraph.graph.message import add_messages
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import ChatHuggingFace
 from langchain_huggingface import HuggingFacePipeline
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from typing import TypedDict, Annotated
-from langchain_google_vertexai import VertexAI
 
 import re
-
 
 
 from .llmTools import (
@@ -37,10 +41,10 @@ model = None
 def model_init_gguf():
     global model
     model_path = settings.MODEL_PATH
-    if settings.MODEL_CHAT_FORMAT=='':
+    if settings.MODEL_CHAT_FORMAT == "":
         llm = ChatLlamaCpp(
             model_path=model_path,
-            model_kwargs={"tensorcores": True },
+            model_kwargs={"tensorcores": True},
             n_ctx=8192,
             n_gpu_layers=-1,
             top_k=0,
@@ -52,7 +56,10 @@ def model_init_gguf():
     else:
         llm = ChatLlamaCpp(
             model_path=model_path,
-            model_kwargs={"chat_format": settings.MODEL_CHAT_FORMAT, "tensorcores": True },
+            model_kwargs={
+                "chat_format": settings.MODEL_CHAT_FORMAT,
+                "tensorcores": True,
+            },
             n_ctx=8192,
             n_gpu_layers=-1,
             top_k=0,
@@ -71,7 +78,7 @@ def model_init_gguf():
         write_file,
         sumNumbers,
     ]
-    model = create_react_agent(
+    model = create_agent(
         model=llm,
         tools=tools,
         state_schema=CustomState,
@@ -96,21 +103,22 @@ def model_init_opanai():
         query_vector,
         sumNumbers,
     ]
-    model = create_react_agent(
+    model = create_agent(
         model=llm,
         tools=tools,
         state_schema=CustomState,
         debug=True,
-        prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
+        system_prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
     )
+
 
 def model_init_api():
     global model
     os.environ["OPENAI_API_KEY"] = settings.OPEN_AI_KEY
     llm = ChatOpenAI(
-        model="model",  
-        openai_api_base=settings.MODEL_API_URL,  
-        openai_api_key="sk-no-key-required" 
+        model="model",
+        openai_api_base=settings.MODEL_API_URL,
+        openai_api_key="sk-no-key-required",
     )
     tools = [
         findBigger,
@@ -120,17 +128,18 @@ def model_init_api():
         find_factors,
         genRandomNumber,
         write_file,
-        #custom_code,
-        #query_vector,
+        # custom_code,
+        # query_vector,
         sumNumbers,
     ]
-    model = create_react_agent(
+    model = create_agent(
         model=llm,
         tools=tools,
         state_schema=CustomState,
         debug=True,
-        prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
+        system_prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
     )
+
 
 def model_init_transformer():
     global model
@@ -157,12 +166,12 @@ def model_init_transformer():
         write_file,
         sumNumbers,
     ]
-    model = create_react_agent(
+    model = create_agent(
         model=chat_model,
         tools=tools,
         state_schema=CustomState,
         debug=True,
-        prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
+        system_prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
     )
 
 
@@ -176,11 +185,10 @@ def model_predict(input_text, userid, conversessionID):
                 "role": "system",
                 "content": f"{settings.SYSTEM_PROMPTS['Default_Personal']}",
             },
-            userid,conversessionID
+            userid,
+            conversessionID,
         )
-        set_memory(
-            {"role": "user", "content": input_text}, userid, conversessionID
-        )
+        set_memory({"role": "user", "content": input_text}, userid, conversessionID)
         messages = get_memory(userid, conversessionID)
     else:
         set_memory({"role": "user", "content": input_text}, userid, conversessionID)
@@ -190,10 +198,10 @@ def model_predict(input_text, userid, conversessionID):
         {"messages": input_message.messages},
     )
     result = output["messages"][-1].content
-    #print(result)
+    # print(result)
     if "<think>" in result and "</think>" in result:
         result = remove_think(result)
-        
+
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
 
@@ -205,11 +213,11 @@ def model_predict_retry(userid, conversessionID):
     if messages is None or len(messages) == 0:
         return True
     else:
-        messages=get_memory(userid, conversessionID)
-        if messages[-1]["role"]!="user" and messages[-1]["role"]!="system":
+        messages = get_memory(userid, conversessionID)
+        if messages[-1]["role"] != "user" and messages[-1]["role"] != "system":
             messages = get_memory(userid, conversessionID)[:-1]
             revert_memory(userid, conversessionID)
-        
+
     try:
         input_message = load_history_from_json(memory_to_turple(messages))
         output = model.invoke(
@@ -274,7 +282,10 @@ def rag_predict(input_text, userid, conversessionID):
     ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
     # print(ragPersonal)
     messages = [
-        {"role": "assistant", "content": f"{ragPersonal},This is current chat_id:{conversessionID},use it to query vector store with message if you need it"},
+        {
+            "role": "assistant",
+            "content": f"{ragPersonal},This is current chat_id:{conversessionID},use it to query vector store with message if you need it",
+        },
         {"role": "user", "content": input_text},
     ]
     input_message = load_history_from_json(memory_to_turple(messages))
@@ -286,6 +297,7 @@ def rag_predict(input_text, userid, conversessionID):
         result = remove_think(result)
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
+
 
 def rag_predict_openai(input_text, userid, conversessionID):
     global model
@@ -324,11 +336,11 @@ def rag_predict_retry(userid, conversessionID):
         return True
     else:
         messages = get_memory(userid, conversessionID)[:-1]
-        
-    if messages[-1]["role"]!="user" and messages[-1]["role"]!="system":
+
+    if messages[-1]["role"] != "user" and messages[-1]["role"] != "system":
         messages = get_memory(userid, conversessionID)[:-1]
         revert_memory(userid, conversessionID)
-        
+
     last_input = messages[len(messages) - 1]["content"]
     readDoc = queryVector(conversessionID, f"{last_input}")
     ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
@@ -351,6 +363,7 @@ def rag_predict_retry(userid, conversessionID):
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
 
+
 def rag_predict_retry_openai(userid, conversessionID):
     global model
     messages = get_memory(userid, conversessionID)
@@ -359,10 +372,10 @@ def rag_predict_retry_openai(userid, conversessionID):
         return True
     else:
         messages = get_memory(userid, conversessionID)[:-1]
-    if messages[-1]["role"]!="user" and messages[-1]["role"]!="system":
+    if messages[-1]["role"] != "user" and messages[-1]["role"] != "system":
         messages = get_memory(userid, conversessionID)[:-1]
         revert_memory(userid, conversessionID)
-    #last_input = messages[len(messages) - 1]["content"]
+    # last_input = messages[len(messages) - 1]["content"]
     try:
         input_message = load_history_from_json(memory_to_turple(messages))
         output = model.invoke(
@@ -376,16 +389,13 @@ def rag_predict_retry_openai(userid, conversessionID):
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
     return result, conversessionID
 
+
 def remove_think(message):
     return re.sub(r"<think>[\s\S]*?</think>", "", str(message))
-
-
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
 
 
 class CustomState(TypedDict):
     today: str
     messages: Annotated[list[BaseMessage], add_messages]
     is_last_step: str
-    remaining_steps : int
+    remaining_steps: int
