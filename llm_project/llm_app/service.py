@@ -1,4 +1,5 @@
 import os
+from pyexpat.errors import messages
 from django.conf import settings
 from .memory_handler import (
     set_memory,
@@ -9,19 +10,17 @@ from .memory_handler import (
 )
 from .weaviateVectorStoreHandler import queryVector
 from langchain_community.chat_models import ChatLlamaCpp
-from langchain_core.tools import tool
-from langchain_core.messages.base import BaseMessage
 from langgraph.graph.message import add_messages
-from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import ChatHuggingFace
 from langchain_huggingface import HuggingFacePipeline
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from typing import TypedDict, Annotated
-
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.checkpoint.memory import MemorySaver # For automatic memory!
 import re
-
-
 from .llmTools import (
     findBigger,
     sortList_asc,
@@ -35,7 +34,40 @@ from .llmTools import (
     sumNumbers,
 )
 
+
+class AgentState(TypedDict):
+    messages: Annotated[list, add_messages]
+
 model = None
+app = None
+
+def graph_init():
+    global app
+    workflow = StateGraph(AgentState)
+    tools = [
+        findBigger,
+        sortList_asc,
+        sortList_desc,
+        is_prime,
+        find_factors,
+        genRandomNumber,
+        write_file,
+        sumNumbers,
+    ]
+    tool_node = ToolNode(tools)
+    workflow.add_node("agent", call_model)
+    workflow.add_node("tools", tool_node)
+    workflow.add_edge(START, "agent")
+    workflow.add_conditional_edges("agent", tools_condition)
+    workflow.add_edge("tools", "agent")
+    memory = MemorySaver()
+    app = workflow.compile(checkpointer=memory)
+
+def call_model(state: AgentState):
+    global model
+    response = model.invoke(state["messages"])
+    return {"messages": [response]}
+
 
 
 def model_init_gguf():
@@ -78,13 +110,7 @@ def model_init_gguf():
         write_file,
         sumNumbers,
     ]
-    model = create_agent(
-        model=llm,
-        tools=tools,
-        state_schema=CustomState,
-        debug=True,
-        prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
-    )
+    model = llm.bind_tools(tools)
 
 
 def model_init_opanai():
@@ -103,13 +129,7 @@ def model_init_opanai():
         query_vector,
         sumNumbers,
     ]
-    model = create_agent(
-        model=llm,
-        tools=tools,
-        state_schema=CustomState,
-        debug=True,
-        system_prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
-    )
+    model = llm.bind_tools(tools)
 
 
 def model_init_api():
@@ -120,25 +140,32 @@ def model_init_api():
         openai_api_base=settings.MODEL_API_URL,
         openai_api_key="sk-no-key-required",
     )
-    tools = [
-        findBigger,
-        sortList_asc,
-        sortList_desc,
-        is_prime,
-        find_factors,
-        genRandomNumber,
-        write_file,
-        # custom_code,
-        # query_vector,
-        sumNumbers,
-    ]
-    model = create_agent(
-        model=llm,
-        tools=tools,
-        state_schema=CustomState,
-        debug=True,
-        system_prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
-    )
+    if settings.HAS_WEAVAITEDB== "True":
+        tools = [
+            findBigger,
+            sortList_asc,
+            sortList_desc,
+            is_prime,
+            find_factors,
+            genRandomNumber,
+            write_file,
+            query_vector,
+            sumNumbers,
+        ]
+    else:
+        tools = [
+            findBigger,
+            sortList_asc,
+            sortList_desc,
+            is_prime,
+            find_factors,
+            genRandomNumber,
+            write_file,
+            # custom_code,
+            # query_vector,
+            sumNumbers,
+        ]
+    model = llm.bind_tools(tools)
 
 
 def model_init_transformer():
@@ -166,17 +193,12 @@ def model_init_transformer():
         write_file,
         sumNumbers,
     ]
-    model = create_agent(
-        model=chat_model,
-        tools=tools,
-        state_schema=CustomState,
-        debug=True,
-        system_prompt=settings.SYSTEM_PROMPTS["Default_Personal"],
-    )
+    model = chat_model.bind_tools(tools)
 
 
 def model_predict(input_text, userid, conversessionID):
-    global model
+    global app
+    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
     messages = get_memory(userid, conversessionID)
 
     if messages is None or len(messages) == 0:
@@ -194,20 +216,20 @@ def model_predict(input_text, userid, conversessionID):
         set_memory({"role": "user", "content": input_text}, userid, conversessionID)
         messages = get_memory(userid, conversessionID)
     input_message = load_history_from_json(memory_to_turple(messages))
-    output = model.invoke(
-        {"messages": input_message.messages},
+    output = app.invoke(
+            {"messages": input_message.messages},
+            config=config
     )
-    result = output["messages"][-1].content
-    # print(result)
-    if "<think>" in result and "</think>" in result:
-        result = remove_think(result)
-
-    set_memory({"role": "assistant", "content": result}, userid, conversessionID)
-    return result, conversessionID
+    last_message = output["messages"][-1].content
+    if "<think>" in last_message and "</think>" in last_message:
+        last_message = remove_think(last_message)
+    set_memory({"role": "assistant", "content": last_message}, userid, conversessionID)
+    return last_message, conversessionID
 
 
 def model_predict_retry(userid, conversessionID):
-    global model
+    global app
+    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
     messages = get_memory(userid, conversessionID)
 
     if messages is None or len(messages) == 0:
@@ -220,14 +242,14 @@ def model_predict_retry(userid, conversessionID):
 
     try:
         input_message = load_history_from_json(memory_to_turple(messages))
-        output = model.invoke(
+        output = app.invoke(
             {"messages": input_message.messages},
+            config=config
         )
     except Exception as e:
         print(e)
         raise
     result = output["messages"][-1].content
-    # print(result)
     if "<think>" in result and "</think>" in result:
         result = remove_think(result)
     set_memory({"role": "assistant", "content": result}, userid, conversessionID)
@@ -259,14 +281,15 @@ def message_undo(userid, conversessionID):
 
 
 def rag_predict(input_text, userid, conversessionID):
-    global model
+    global app
+    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
     messages = get_memory(userid, conversessionID)
     readDoc = queryVector(conversessionID, f"{input_text}")
 
     if messages is None:
         set_memory(
             {
-                "role": "system",
+                "role": "assistant",
                 "content": f"{settings.SYSTEM_PROMPTS['Default_Personal']},This is current chat_id:{conversessionID},use it to query vector store with message if you need it",
             },
             userid,
@@ -277,10 +300,8 @@ def rag_predict(input_text, userid, conversessionID):
     else:
         set_memory({"role": "user", "content": input_text}, userid, conversessionID)
         messages = get_memory(userid, conversessionID)
-    # 向量資料庫有查到東西時，使用組合的提示詞
 
     ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
-    # print(ragPersonal)
     messages = [
         {
             "role": "assistant",
@@ -289,8 +310,9 @@ def rag_predict(input_text, userid, conversessionID):
         {"role": "user", "content": input_text},
     ]
     input_message = load_history_from_json(memory_to_turple(messages))
-    output = model.invoke(
+    output = app.invoke(
         {"messages": input_message.messages},
+        config=config
     )
     result = output["messages"][-1].content
     if "<think>" in result and "</think>" in result:
@@ -300,7 +322,8 @@ def rag_predict(input_text, userid, conversessionID):
 
 
 def rag_predict_openai(input_text, userid, conversessionID):
-    global model
+    global app
+    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
     messages = get_memory(userid, conversessionID)
 
     if messages is None:
@@ -319,8 +342,9 @@ def rag_predict_openai(input_text, userid, conversessionID):
         messages = get_memory(userid, conversessionID)
 
     input_message = load_history_from_json(memory_to_turple(messages))
-    output = model.invoke(
+    output = app.invoke(
         {"messages": input_message.messages},
+        config=config
     )
     result = output["messages"][-1].content
 
@@ -329,7 +353,8 @@ def rag_predict_openai(input_text, userid, conversessionID):
 
 
 def rag_predict_retry(userid, conversessionID):
-    global model
+    global app
+    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
     messages = get_memory(userid, conversessionID)
 
     if messages is None or len(messages) == 0:
@@ -351,8 +376,9 @@ def rag_predict_retry(userid, conversessionID):
     ]
     try:
         input_message = load_history_from_json(memory_to_turple(messages))
-        output = model.invoke(
+        output = app.invoke(
             {"messages": input_message.messages},
+            config=config
         )
     except Exception as e:
         print(e)
@@ -365,7 +391,8 @@ def rag_predict_retry(userid, conversessionID):
 
 
 def rag_predict_retry_openai(userid, conversessionID):
-    global model
+    global app
+    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
     messages = get_memory(userid, conversessionID)
 
     if messages is None or len(messages) == 0:
@@ -378,8 +405,9 @@ def rag_predict_retry_openai(userid, conversessionID):
     # last_input = messages[len(messages) - 1]["content"]
     try:
         input_message = load_history_from_json(memory_to_turple(messages))
-        output = model.invoke(
+        output = app.invoke(
             {"messages": input_message.messages},
+            config=config
         )
     except Exception as e:
         print(e)
@@ -394,8 +422,4 @@ def remove_think(message):
     return re.sub(r"<think>[\s\S]*?</think>", "", str(message))
 
 
-class CustomState(TypedDict):
-    today: str
-    messages: Annotated[list[BaseMessage], add_messages]
-    is_last_step: str
-    remaining_steps: int
+
