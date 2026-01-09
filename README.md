@@ -11,7 +11,7 @@
 使用方法:  
 需先行安裝requirements.txt中的函式庫  
 你需要先在llm_project/llm_app/models/這個路徑中放入要執行的GGUF模型，並更新在settings.py中MODEL_PATH指定的模型檔名  
-如果要接OpenAI的API則需先行設定MODEL_TYPE為openai,並將你的api key寫於OPEN_AI_KEY
+如果要接OpenAI的API則需先行設定MODEL_TYPE為openai,並將你的api key寫於OPEN_AI_KEY  
 若在本地有安裝weaviate，在settings.py中將HAS_WEAVAITEDB改為True後畫面會額外顯示接受PDF的上傳  
 執行以下指令應該能將專案跑起來  
 ```
@@ -20,9 +20,9 @@ python llm_project\manage.py runserver 0.0.0.0:8123 --noreload
 
 設定:  
 帳號密碼在llm_project/llm_app/user.json中  
-  -預設的帳號密碼user1/password1為預設管理員
-  -預設的帳號密碼user2/password2為預設使用者
-  `可以使用/login_manage/使用user1登入後進行使用者增加與修改
+  -預設的帳號密碼user1/password1為預設管理員  
+  -預設的帳號密碼user2/password2為預設使用者  
+  -可以使用/login_manage/使用user1登入後進行使用者增加與修改  
 在llm_project/llm_project/settings.py中  
 SYSTEM_PROMPTS:系統文字，其中Default_Personal是所有對話的系統提示詞  
 MODEL_PATH:是指定的模型路徑  
