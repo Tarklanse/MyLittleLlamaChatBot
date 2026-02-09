@@ -12,6 +12,7 @@
 需先行安裝requirements.txt中的函式庫  
 你需要先在llm_project/llm_app/models/這個路徑中放入要執行的GGUF模型，並更新在settings.py中MODEL_PATH指定的模型檔名  
 如果要接OpenAI的API則需先行設定MODEL_TYPE為openai,並將你的api key寫於OPEN_AI_KEY  
+若要接llama.cpp server的API，需先行設定MODEL_TYPE為api,並將api的網址與埠號寫於MODEL_API_URL，像是'http://127.0.0.1:5000'  
 若在本地有安裝weaviate，在settings.py中將HAS_WEAVAITEDB改為True後畫面會額外顯示接受PDF的上傳  
 執行以下指令應該能將專案跑起來  
 ```
