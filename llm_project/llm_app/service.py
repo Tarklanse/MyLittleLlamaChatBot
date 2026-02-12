@@ -1,4 +1,6 @@
 import os
+import importlib
+import inspect
 from pyexpat.errors import messages
 from django.conf import settings
 from .memory_handler import (
@@ -21,18 +23,8 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.checkpoint.memory import MemorySaver # For automatic memory!
 import re
-from .llmTools import (
-    findBigger,
-    sortList_asc,
-    sortList_desc,
-    is_prime,
-    find_factors,
-    genRandomNumber,
-    write_file,
-    query_vector,
-    custom_code,
-    sumNumbers,
-)
+from . import llmTools
+from langchain_core.tools import tool, BaseTool
 
 
 class AgentState(TypedDict):
@@ -41,19 +33,40 @@ class AgentState(TypedDict):
 model = None
 app = None
 
+@tool
+def reload_tools() -> str:
+    """Reloads the llmTools module to apply any new tools added."""
+    try:
+        importlib.reload(llmTools)
+        # Re-init graph and model to pick up new tools
+        if settings.MODEL_TYPE == 'transformer':
+            model_init_transformer()
+        elif settings.MODEL_TYPE == 'openai':
+            model_init_opanai()
+        elif settings.MODEL_TYPE == 'api':
+            model_init_api()
+        else:
+            model_init_gguf()
+        graph_init()
+        return "Tools reloaded successfully."
+    except Exception as e:
+        return f"Error reloading tools: {e}"
+
+def get_dynamic_tools():
+    """Dynamically fetch all tools from llmTools module."""
+    tools = [reload_tools]
+    for name, obj in inspect.getmembers(llmTools):
+        if isinstance(obj, BaseTool):
+            # Optional: Filter logic for query_vector based on settings if needed
+            if name == 'query_vector' and str(settings.HAS_WEAVAITEDB) != "True":
+                continue
+            tools.append(obj)
+    return tools
+
 def graph_init():
     global app
     workflow = StateGraph(AgentState)
-    tools = [
-        findBigger,
-        sortList_asc,
-        sortList_desc,
-        is_prime,
-        find_factors,
-        genRandomNumber,
-        write_file,
-        sumNumbers,
-    ]
+    tools = get_dynamic_tools()
     tool_node = ToolNode(tools)
     workflow.add_node("agent", call_model)
     workflow.add_node("tools", tool_node)
@@ -100,16 +113,7 @@ def model_init_gguf():
             temperature=settings.GEN_TEMPERATURE,
             repeat_penalty=settings.GEN_REPEAT_PENALTY,
         )
-    tools = [
-        findBigger,
-        sortList_asc,
-        sortList_desc,
-        is_prime,
-        find_factors,
-        genRandomNumber,
-        write_file,
-        sumNumbers,
-    ]
+    tools = get_dynamic_tools()
     model = llm.bind_tools(tools)
 
 
@@ -117,18 +121,7 @@ def model_init_opanai():
     global model
     os.environ["OPENAI_API_KEY"] = settings.OPEN_AI_KEY
     llm = ChatOpenAI(model="gpt4o")
-    tools = [
-        findBigger,
-        sortList_asc,
-        sortList_desc,
-        is_prime,
-        find_factors,
-        genRandomNumber,
-        write_file,
-        custom_code,
-        query_vector,
-        sumNumbers,
-    ]
+    tools = get_dynamic_tools()
     model = llm.bind_tools(tools)
 
 
@@ -140,31 +133,7 @@ def model_init_api():
         openai_api_base=settings.MODEL_API_URL,
         openai_api_key="sk-no-key-required",
     )
-    if settings.HAS_WEAVAITEDB== "True":
-        tools = [
-            findBigger,
-            sortList_asc,
-            sortList_desc,
-            is_prime,
-            find_factors,
-            genRandomNumber,
-            write_file,
-            query_vector,
-            sumNumbers,
-        ]
-    else:
-        tools = [
-            findBigger,
-            sortList_asc,
-            sortList_desc,
-            is_prime,
-            find_factors,
-            genRandomNumber,
-            write_file,
-            # custom_code,
-            # query_vector,
-            sumNumbers,
-        ]
+    tools = get_dynamic_tools()
     model = llm.bind_tools(tools)
 
 
@@ -183,16 +152,7 @@ def model_init_transformer():
     )
     hf = HuggingFacePipeline(pipeline=pipe)
     chat_model = ChatHuggingFace(llm=hf)
-    tools = [
-        findBigger,
-        sortList_asc,
-        sortList_desc,
-        is_prime,
-        find_factors,
-        genRandomNumber,
-        write_file,
-        sumNumbers,
-    ]
+    tools = get_dynamic_tools()
     model = chat_model.bind_tools(tools)
 
 
@@ -420,6 +380,3 @@ def rag_predict_retry_openai(userid, conversessionID):
 
 def remove_think(message):
     return re.sub(r"<think>[\s\S]*?</think>", "", str(message))
-
-
-

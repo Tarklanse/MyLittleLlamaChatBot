@@ -138,3 +138,28 @@ def write_file(input_filename: str, input_context: str) -> str:
     # Return the relative URL
     relative_url = f"/api/download_AI_Gen_file/{input_filename}"
     return relative_url
+
+@tool
+def add_tool_code(code: str) -> str:
+    """
+    Appends new python code (defining a tool) to the llmTools.py file.
+    The code should include imports if necessary, but standard ones are already there.
+    The function must be decorated with @tool.
+    """
+    file_path = __file__
+    try:
+        with open(file_path, "a", encoding="utf-8") as f:
+            f.write("\n\n" + code)
+        return "Code added successfully. Please use reload_tools to apply changes."
+    except Exception as e:
+        return f"Error writing to file: {e}"
+
+
+import math
+
+@tool
+def square_root(number):
+    """
+    Calculate the square root of a number.
+    """
+    return math.sqrt(number)
