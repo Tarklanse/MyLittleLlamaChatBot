@@ -1,4 +1,4 @@
-django==5.2.9
+Django==5.2.11
 djangorestframework==3.16
 llama-cpp-python==0.3.16
 langchain==1.2.0
@@ -18,8 +18,10 @@ langgraph-checkpoint==3.0.1
 langgraph-checkpoint-sqlite==3.0.1
 langgraph-prebuilt==1.0.2
 langgraph-sdk==0.2.9
-langsmith==0.4.37
+langsmith==0.6.3
 tavily-python==0.7.10
+
+
 
 
 
