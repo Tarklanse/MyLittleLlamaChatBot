@@ -3,9 +3,13 @@ from langchain_huggingface import HuggingFaceEmbeddings
 import pdfplumber
 from langchain_core.documents import Document
 from langchain_weaviate.vectorstores import WeaviateVectorStore
-import re,os
+import re,os,logging
 from .vectorMapper import add_mapping,get_mapping
 
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 
 weaviate_clien=None
 embeddings=None
@@ -17,7 +21,17 @@ def weaviate_store_init():
     return weaviate_clien
 def embedding_init():
     global embeddings
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
+    model_name = "sentence-transformers/LaBSE"
+    try:
+        embeddings = HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs={"local_files_only": True}
+        )
+    except Exception:
+        embeddings = HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs={"local_files_only": False}
+        )
     return embeddings
 
 def get_all_pdfs(directory):
@@ -170,7 +184,15 @@ def get_weaviate_retriever(conversessionID):
     
     
 def testloadfiles():
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
+    model_name = "sentence-transformers/LaBSE"
+    try:
+        embeddings = HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs={"local_files_only": True}
+        )
+    except Exception:
+        embeddings = HuggingFaceEmbeddings(model_name=model_name)
+        
     filepath=get_all_pdfs("./testPath")
     documents=extract_pdf_content(filepath)
     print(f"檔案被切分為{len(documents)}塊")
