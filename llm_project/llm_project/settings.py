@@ -133,11 +133,11 @@ SYSTEM_PROMPTS = {
 }
 
 USER_DATA_FILE = 'llm_project/llm_app/users.json'
-MODEL_TYPE='api'
+MODEL_TYPE='openrouter'
 MODEL_PATH = 'llm_project/llm_app/models/model.gguf'
 MODEL_CHAT_FORMAT = 'gemma'
-MODEL_ID='meta-llama/Llama-3.1-8B-Instruct'
-MODEL_API_URL = 'http://localhost:8080'  # URL for the llama.cpp API
+MODEL_ID='nvidia/nemotron-3-super-120b-a12b:free'
+MODEL_API_URL = 'http://localhost:5000'  # URL for the llama.cpp API
 
 AI_TEXT_PATH='ai_txt/'
 
@@ -165,6 +165,8 @@ GEN_REPEAT_PENALTY = 1.5
 GEN_MAX_TOKEN = 4096
 
 OPEN_AI_KEY = ""
+
+OPENROUTER_API_KEY=""
 
 LANGSMITH_TRACING="false"
 

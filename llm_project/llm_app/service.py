@@ -14,6 +14,7 @@ from .weaviateVectorStoreHandler import queryVector
 from langchain_community.chat_models import ChatLlamaCpp
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
+from langchain_openrouter import ChatOpenRouter
 from langchain_huggingface import ChatHuggingFace
 from langchain_huggingface import HuggingFacePipeline
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
@@ -45,6 +46,8 @@ def reload_tools() -> str:
             model_init_opanai()
         elif settings.MODEL_TYPE == 'api':
             model_init_api()
+        elif settings.MODEL_TYPE == 'openrouter':
+            model_init_OpenRouter()
         else:
             model_init_gguf()
         graph_init()
@@ -124,6 +127,14 @@ def model_init_opanai():
     tools = get_dynamic_tools()
     model = llm.bind_tools(tools)
 
+def model_init_OpenRouter():
+    global model
+    llm = ChatOpenRouter(
+        model=settings.MODEL_ID,
+        api_key=settings.OPENROUTER_API_KEY,
+    )
+    tools = get_dynamic_tools()
+    model = llm.bind_tools(tools)
 
 def model_init_api():
     global model
