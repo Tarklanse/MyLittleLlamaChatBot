@@ -17,6 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const personalDiv = document.getElementById('Personal');
     // Check for browser support for the Web Speech API
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); 
+            chatForm.requestSubmit(); 
+        }
+    });
+    
     const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
     if (recognition) {
