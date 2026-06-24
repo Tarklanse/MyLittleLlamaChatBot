@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from .service import (
+    CleanVector,
     model_predict_retry,
     model_predict,
     message_undo,
@@ -30,6 +31,7 @@ from django.http import JsonResponse
 from rest_framework import status
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from .auth_backend import JsonFileBackend
@@ -39,8 +41,8 @@ from django.core.files.base import ContentFile
 from django.http import JsonResponse
 import os
 from datetime import datetime
-from .weaviateVectorStoreHandler import newVector,get_vector_list
-from .vectorMapper import get_mapping,get_All_mapping
+from .weaviateVectorStoreHandler import newVector,get_vector_list,weaviate_store_init
+from .vectorMapper import get_mapping,get_All_mapping,remove_mapping
 from django.http import FileResponse, Http404
 
 
@@ -356,6 +358,7 @@ def login_view_manage(request):
             user.backend = "llm_app.auth_backend.JsonFileBackend"
 
             request.session["is_authenticated"] = True
+            request.session["is_manage"] = True
 
             return redirect("/manage/users")
         else:
@@ -368,31 +371,57 @@ def login_view_manage(request):
 
 @api_view(["GET", "POST"])
 def manage_vector_view(request):
-    if not request.session.get("is_authenticated"):
+    if not request.session.get("is_manage"):
         return JsonResponse({"error": "Authentication required."}, status=403)
     if request.method == "GET":
-        # Fetch all users to display
-        #users = get_all_user()
-        vector=get_vector_list()
-        vectors=get_All_mapping()
-        return render(request, "manage_vector.html", {"users": vector})
+        # Build mapping of chat_id to user_id by scanning the memory directory
+        user_mapping = {}
+        memory_dir = os.path.join(settings.BASE_DIR.parent, "memory")
+        if os.path.exists(memory_dir):
+            for user_id in os.listdir(memory_dir):
+                user_path = os.path.join(memory_dir, user_id)
+                if os.path.isdir(user_path):
+                    for filename in os.listdir(user_path):
+                        if filename.endswith(".json"):
+                            chat_id_key = filename[:-5]
+                            user_mapping[chat_id_key] = user_id
+
+        all_mappings = get_All_mapping()
+        vectors_to_display = []
+        for cid, vid in all_mappings.items():
+            vectors_to_display.append({
+                "chat_id": cid,
+                "vector_id": vid,
+                "user": user_mapping.get(cid, "Unknown")
+            })
+
+        return render(request, "manage_vector.html", {"vectors": vectors_to_display})
 
     elif request.method == "POST":
         action = request.data["action"]
         if action == "delete":
-            username = request.data["username"]
-            result = del_user(username)
-            if result:
-                response = {"status": "success", "message": "user deleted"}
+            chat_id = request.data.get("chat_id")
+            vector_id = request.data.get("vector_id")
+
+            # Delete collection from Weaviate first; only remove the mapping if it succeeds
+            try:
+                client = weaviate_store_init()
+                client.collections.delete(vector_id)
+            except Exception as e:
+                print(f"Error deleting Weaviate collection: {e}")
+                return JsonResponse({"status": "error", "message": f"Failed to delete vector collection: {e}"})
+
+            if remove_mapping(chat_id):
+                response = {"status": "success", "message": "vector deleted"}
             else:
-                response = {"status": "success", "message": "user not deleted"}
+                response = {"status": "error", "message": "vector mapping not found"}
         else:
             response = {"status": "error", "message": "Invalid action"}
 
         return JsonResponse(response)
 @api_view(["GET", "POST"])
 def manage_users_view(request):
-    if not request.session.get("is_authenticated"):
+    if not request.session.get("is_manage"):
         return JsonResponse({"error": "Authentication required."}, status=403)
     if request.method == "GET":
         # Fetch all users to display
@@ -433,3 +462,12 @@ def manage_users_view(request):
             response = {"status": "error", "message": "Invalid action"}
 
         return JsonResponse(response)
+@require_POST
+def manage_vector_full_reset(request):
+    if not request.session.get("is_manage"):
+        return JsonResponse({"error": "Authentication required."}, status=403)
+    if CleanVector():
+        response = {"status": "success", "message": "Vector reset successfully"}
+    else:
+        response = {"status": "error", "message": "Vector reset failed"}
+    return JsonResponse(response)

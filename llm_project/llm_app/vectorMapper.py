@@ -2,8 +2,9 @@ import os
 import json
 from datetime import datetime
 
-# Directory to store chat histories
-BASE_vectorMapper_PATH = "vectorMapper"
+# Anchored to this file's location so the path is correct regardless of CWD
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_vectorMapper_PATH = os.path.normpath(os.path.join(_THIS_DIR, "..", "..", "vectorMapper"))
 Base_Record_filename= "VectorMapper"
 
 def get_vectorMapper_path():
@@ -39,7 +40,7 @@ def get_mapping(chat_id):
             data = json.load(file)
             return data.get(chat_id, None)
 
-def get_All_mapping(chat_id):
+def get_All_mapping():
     filepath = get_vectorMapper_path()
     if os.path.exists(filepath):
         with open(filepath, 'r') as file:
@@ -47,3 +48,21 @@ def get_All_mapping(chat_id):
             return data
     else:
         return {}
+
+def remove_mapping(chat_id):
+    filepath = get_vectorMapper_path()
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as file:
+            data = json.load(file)
+        if chat_id in data:
+            del data[chat_id]
+            with open(filepath, 'w') as file:
+                json.dump(data, file)
+            return True
+    return False
+
+def clear_all_mappings():
+    filepath = get_vectorMapper_path()
+    os.makedirs(get_vectorMapper_dir_path(), exist_ok=True)
+    with open(filepath, 'w') as file:
+        json.dump({}, file)

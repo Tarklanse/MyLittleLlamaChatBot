@@ -150,3 +150,29 @@ async function addUser() {
     closeAddPopup();
 }
 
+// Function to reset all vectors
+async function resetVectors() {
+    if (!confirm("Are you sure you want to reset all vectors? This action will permanently delete all stored vector data and cannot be undone.")) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/manage/vectors_full_reset', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const result = await response.json();
+        if (result.status === 'success') {
+            alert('All vectors have been reset successfully!');
+        } else {
+            alert('Error resetting vectors: ' + (result.message || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error during vector reset:', error);
+        alert('An error occurred while trying to reset vectors.');
+    }
+}

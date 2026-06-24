@@ -4,7 +4,7 @@ import pdfplumber
 from langchain_core.documents import Document
 from langchain_weaviate.vectorstores import WeaviateVectorStore
 import re,os,logging
-from .vectorMapper import add_mapping,get_mapping
+from .vectorMapper import add_mapping,get_mapping,clear_all_mappings
 
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
@@ -16,21 +16,25 @@ embeddings=None
 
 def weaviate_store_init():
     global weaviate_clien
-    weaviate_clien = weaviate.connect_to_local(
-    )
+    if weaviate_clien is not None and weaviate_clien.is_ready():
+        return weaviate_clien
+    weaviate_clien = weaviate.connect_to_local()
     return weaviate_clien
 def embedding_init():
     global embeddings
-    model_name = "sentence-transformers/LaBSE"
+    model_name = "Qwen/Qwen3-Embedding-0.6B"
+    # trust_remote_code=True is required by Qwen3-Embedding but executes arbitrary
+    # model repo code. Pin a specific revision hash from HuggingFace Hub to mitigate
+    # supply-chain risk: model_kwargs={"revision": "<commit-sha>", ...}
     try:
         embeddings = HuggingFaceEmbeddings(
             model_name=model_name,
-            model_kwargs={"local_files_only": True}
+            model_kwargs={"local_files_only": True, "trust_remote_code": True}
         )
     except Exception:
         embeddings = HuggingFaceEmbeddings(
             model_name=model_name,
-            model_kwargs={"local_files_only": False}
+            model_kwargs={"local_files_only": False, "trust_remote_code": True}
         )
     return embeddings
 
@@ -209,6 +213,23 @@ def testloadfiles():
     docs = db.similarity_search("itpet的主要目的是甚麼?")
     print(docs)
 
+def weaviate_close():
+    global weaviate_clien
+    if weaviate_clien is not None:
+        try:
+            weaviate_clien.close()
+        except Exception:
+            pass
+        weaviate_clien = None
 
+def full_reset_Vector():
+    global weaviate_clien
+    weaviate_store_init()
+    try:
+        weaviate_clien.collections.delete_all()
+        clear_all_mappings()
+        return True
+    except Exception as e:
+        return False
 
 #weaviatetest.collections.delete_all()

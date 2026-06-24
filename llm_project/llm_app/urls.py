@@ -17,4 +17,5 @@ urlpatterns = [
     path('login_manage/', views.login_view_manage, name='login_manage'),
     path("manage/users", views.manage_users_view, name="manage_users"),
     path("manage/vectors", views.manage_vector_view, name="manage_vectors"),
+    path("manage/vectors_full_reset", views.manage_vector_full_reset, name="manage_vector_full_reset"),
 ]

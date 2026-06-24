@@ -10,7 +10,7 @@ from .memory_handler import (
     memory_to_turple,
     load_history_from_json,
 )
-from .weaviateVectorStoreHandler import queryVector
+from .weaviateVectorStoreHandler import queryVector,full_reset_Vector
 from langchain_community.chat_models import ChatLlamaCpp
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
@@ -391,3 +391,6 @@ def rag_predict_retry_openai(userid, conversessionID):
 
 def remove_think(message):
     return re.sub(r"<think>[\s\S]*?</think>", "", str(message))
+
+def CleanVector():
+    return full_reset_Vector()
