@@ -6,10 +6,6 @@ from .service import (
     model_predict_retry,
     model_predict,
     message_undo,
-    rag_predict,
-    rag_predict_retry,
-    rag_predict_openai,
-    rag_predict_retry_openai,
 )
 from .memory_handler import (
     list_memory_sessions,
@@ -58,15 +54,7 @@ def llm_api(request):
 
             prompt = request.data.get("prompt")
             tempid = request.data.get("CCID")
-            vectorId = get_mapping(tempid)
-            if vectorId is None or settings.HAS_WEAVAITEDB is False:
-                result, conversessionID = model_predict(prompt, user_id, tempid)
-            elif settings.MODEL_TYPE == "openai" and vectorId is not None:
-                result, conversessionID = rag_predict_openai(prompt, user_id, tempid)
-            elif settings.MODEL_TYPE == "api" and vectorId is not None:
-                result, conversessionID = rag_predict(prompt, user_id, tempid)
-            else:
-                result, conversessionID = rag_predict(prompt, user_id, tempid)
+            result, conversessionID = model_predict(prompt, user_id, tempid)
             return Response(
                 {"result": result, "CCID": conversessionID}, status=status.HTTP_200_OK
             )
@@ -90,13 +78,7 @@ def chat_retry(request):
         if request.session.get("is_authenticated"):
             user_id = request.session.get("user_id")
             tempid = request.data.get("CCID")
-            vectorId = get_mapping(tempid)
-            if vectorId is None or settings.HAS_WEAVAITEDB is False:
-                result, conversessionID = model_predict_retry(user_id, tempid)
-            elif settings.MODEL_TYPE == "openai" and vectorId is not None:
-                result, conversessionID = rag_predict_retry_openai(user_id, tempid)
-            else:
-                result, conversessionID = rag_predict_retry(user_id, tempid)
+            result, conversessionID = model_predict_retry(user_id, tempid)
 
             return Response(
                 {"result": result, "CCID": conversessionID}, status=status.HTTP_200_OK

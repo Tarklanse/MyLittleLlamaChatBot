@@ -10,7 +10,7 @@ from .memory_handler import (
     memory_to_turple,
     load_history_from_json,
 )
-from .weaviateVectorStoreHandler import queryVector,full_reset_Vector
+from .weaviateVectorStoreHandler import full_reset_Vector
 from langchain_community.chat_models import ChatLlamaCpp
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
@@ -169,7 +169,7 @@ def model_init_transformer():
 
 def model_predict(input_text, userid, conversessionID):
     global app
-    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
+    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}", "session_id": conversessionID}}
     messages = get_memory(userid, conversessionID)
 
     if messages is None or len(messages) == 0:
@@ -200,7 +200,7 @@ def model_predict(input_text, userid, conversessionID):
 
 def model_predict_retry(userid, conversessionID):
     global app
-    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
+    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}", "session_id": conversessionID}}
     messages = get_memory(userid, conversessionID)
 
     if messages is None or len(messages) == 0:
@@ -249,144 +249,6 @@ def message_undo(userid, conversessionID):
     except Exception as e:
         print(e)
         return False
-
-
-def rag_predict(input_text, userid, conversessionID):
-    global app
-    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
-    messages = get_memory(userid, conversessionID)
-    readDoc = queryVector(conversessionID, f"{input_text}")
-
-    if messages is None:
-        set_memory(
-            {
-                "role": "assistant",
-                "content": f"{settings.SYSTEM_PROMPTS['Default_Personal']},This is current chat_id:{conversessionID},use it to query vector store with message if you need it",
-            },
-            userid,
-            conversessionID,
-        )
-        set_memory({"role": "user", "content": input_text}, userid, conversessionID)
-        messages = get_memory(userid, conversessionID)
-    else:
-        set_memory({"role": "user", "content": input_text}, userid, conversessionID)
-        messages = get_memory(userid, conversessionID)
-
-    ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
-    messages = [
-        {
-            "role": "assistant",
-            "content": f"{ragPersonal},This is current chat_id:{conversessionID},use it to query vector store with message if you need it",
-        },
-        {"role": "user", "content": input_text},
-    ]
-    input_message = load_history_from_json(memory_to_turple(messages))
-    output = app.invoke(
-        {"messages": input_message.messages},
-        config=config
-    )
-    result = output["messages"][-1].content
-    if "<think>" in result and "</think>" in result:
-        result = remove_think(result)
-    set_memory({"role": "assistant", "content": result}, userid, conversessionID)
-    return result, conversessionID
-
-
-def rag_predict_openai(input_text, userid, conversessionID):
-    global app
-    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
-    messages = get_memory(userid, conversessionID)
-
-    if messages is None:
-        set_memory(
-            {
-                "role": "system",
-                "content": f"{settings.SYSTEM_PROMPTS['Default_Personal']},This is current chat_id:{conversessionID},use it to query vector store with message if you need it",
-            },
-            userid,
-            conversessionID,
-        )
-        set_memory({"role": "user", "content": input_text}, userid, conversessionID)
-        messages = get_memory(userid, conversessionID)
-    else:
-        set_memory({"role": "user", "content": input_text}, userid, conversessionID)
-        messages = get_memory(userid, conversessionID)
-
-    input_message = load_history_from_json(memory_to_turple(messages))
-    output = app.invoke(
-        {"messages": input_message.messages},
-        config=config
-    )
-    result = output["messages"][-1].content
-
-    set_memory({"role": "assistant", "content": result}, userid, conversessionID)
-    return result, conversessionID
-
-
-def rag_predict_retry(userid, conversessionID):
-    global app
-    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
-    messages = get_memory(userid, conversessionID)
-
-    if messages is None or len(messages) == 0:
-        return True
-    else:
-        messages = get_memory(userid, conversessionID)[:-1]
-
-    if messages[-1]["role"] != "user" and messages[-1]["role"] != "system":
-        messages = get_memory(userid, conversessionID)[:-1]
-        revert_memory(userid, conversessionID)
-
-    last_input = messages[len(messages) - 1]["content"]
-    readDoc = queryVector(conversessionID, f"{last_input}")
-    ragPersonal = f"{settings.SYSTEM_PROMPTS['Default_Personal']}" + readDoc
-    # print(ragPersonal)
-    messages = [
-        {"role": "assistant", "content": f"{ragPersonal}"},
-        {"role": "user", "content": last_input},
-    ]
-    try:
-        input_message = load_history_from_json(memory_to_turple(messages))
-        output = app.invoke(
-            {"messages": input_message.messages},
-            config=config
-        )
-    except Exception as e:
-        print(e)
-        raise
-    result = output["messages"][-1].content
-    if "<think>" in result and "</think>" in result:
-        result = remove_think(result)
-    set_memory({"role": "assistant", "content": result}, userid, conversessionID)
-    return result, conversessionID
-
-
-def rag_predict_retry_openai(userid, conversessionID):
-    global app
-    config = {"configurable": {"thread_id": f"{userid}_{conversessionID}"}}
-    messages = get_memory(userid, conversessionID)
-
-    if messages is None or len(messages) == 0:
-        return True
-    else:
-        messages = get_memory(userid, conversessionID)[:-1]
-    if messages[-1]["role"] != "user" and messages[-1]["role"] != "system":
-        messages = get_memory(userid, conversessionID)[:-1]
-        revert_memory(userid, conversessionID)
-    # last_input = messages[len(messages) - 1]["content"]
-    try:
-        input_message = load_history_from_json(memory_to_turple(messages))
-        output = app.invoke(
-            {"messages": input_message.messages},
-            config=config
-        )
-    except Exception as e:
-        print(e)
-        raise
-    result = output["messages"][-1].content
-    print(result)
-    set_memory({"role": "assistant", "content": result}, userid, conversessionID)
-    return result, conversessionID
 
 
 def remove_think(message):

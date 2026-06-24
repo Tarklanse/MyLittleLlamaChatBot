@@ -1,4 +1,5 @@
 from langchain_core.tools import tool
+from langchain_core.runnables import RunnableConfig
 from typing import Annotated, List
 from .weaviateVectorStoreHandler import viewVector
 import random, os
@@ -105,16 +106,16 @@ def find_factors(input_a: int) -> List[int]:
 
 
 @tool
-def query_vector(chat_id: str, message: str) -> str:
-    """This function can let you query current chat's vector store
+def query_vector(message: str, config: RunnableConfig) -> str:
+    """This function can let you query current chat's vector store, if user ask something like file content, or some context you can use this to query vector store to get the context and where it came from.
     Parameters:
-    - chat_id (str): vector store's key, vector store will need this to filter the right file to query.
     - message (str): use to query vector store.
 
     Returns:
-    - str: the result of vector store query,it content context and where it come from.
+    - str: the result of vector store query, it contains context and where it came from.
     """
-    return viewVector(chat_id, message)
+    session_id = config["configurable"]["session_id"]
+    return viewVector(session_id, message)
 
 
 @tool
