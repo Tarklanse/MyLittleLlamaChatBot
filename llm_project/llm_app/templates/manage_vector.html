@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Management</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'llm_app/manage_vector.css' %}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Vector Management</h1>
+        </header>
+
+        <main>
+            <section class="vector-list">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Chat ID</th>
+                            <th>Vector ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vectorTable">
+                        {% for vector in vectors %}
+                        <tr>
+                            <td>{{ vector.user }}</td>
+                            <td class="id-cell">{{ vector.chat_id }}</td>
+                            <td class="id-cell">{{ vector.vector_id }}</td>
+                            <td>
+                                <button class="btn remove-button" onclick="deleteVector('{{ vector.chat_id }}', '{{ vector.vector_id }}')">Delete</button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="empty-message">No vector data found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="action-buttons">
+                    <span class="record-count">Total: {{ vectors|length }} record(s)</span>
+                    <button class="btn reset-vectors-button" onclick="resetAllVectors()">Reset All Vectors</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{% static 'llm_app/manage_vector.js' %}"></script>
+</body>
+</html>

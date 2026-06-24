@@ -1,0 +1,8 @@
+ai_txt
+vectorMapper
+uploads
+memory
+llm_project/llm_app/__pycache__/
+llm_project/llm_project/__pycache__/
+llm_project/llm_app/migrations/
+llm_project/llm_app/models/
